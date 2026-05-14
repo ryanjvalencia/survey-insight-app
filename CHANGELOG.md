@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Chart transformations module (`src/lib/charts/index.ts`) — `buildCharts` converts analysis results into `ChartSpec` objects: NPS gauge, rating bar, numeric histogram (10 buckets), category pie (top 10 + Other), and word-cloud weight data (#15)
+- Insight generation module (`src/lib/insights/index.ts`) — `generateInsights` produces rule-based `Insight[]` with severity labels and a summary string; covers NPS, rating, numeric, category, and text columns; no AI API calls (#17)
 - Quantitative analysis module (`src/lib/analysis/index.ts`) — `analyzeQuantitative` computes NPS score/segments, rating distributions, numeric mean/median/stdDev, and category frequencies from cleaned datasets (#13)
 - Text analysis module (`src/lib/text/index.ts`) — `analyzeText` computes word frequencies (stop-word filtered), response length stats, and proxy sentiment (word-list based, no AI API) for `open_text` columns (#14)
 - Data cleaning pipeline (`src/lib/clean/index.ts`) — `cleanDataset(dataset, mappings)` trims whitespace, clamps NPS/rating out-of-range values, normalizes numeric formatting (`$£€,` stripped) and dates to ISO `YYYY-MM-DD`, and nullifies unparseable values; returns `CleaningResult` with cleaned dataset and per-column `CleaningSummary` (#11)

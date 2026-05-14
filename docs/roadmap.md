@@ -34,9 +34,9 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
 | 13 | Quantitative analysis | ✅ done | #11 | Data Pipeline | Large |
 | 14 | Text analysis | ✅ done | #11 | Data Pipeline | Medium |
-| 15 | Chart transformations | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
+| 15 | Chart transformations | ✅ done | #13, #14 | Data Pipeline | Medium |
 | 16 | Analysis dashboard | ⬜ not-started | #15, #3 | Frontend | Large |
-| 17 | Insight generation | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
+| 17 | Insight generation | ✅ done | #13, #14 | Data Pipeline | Medium |
 | 18 | Cleaned CSV export | ⬜ not-started | #11, #16 | Data Pipeline | Small–Medium |
 | 19 | Report export | ⬜ not-started | #13, #14, #17, #18 | Data Pipeline | Large |
 | 20 | Supabase persistence | ⬜ not-started | #1, #11, #13 | Data Pipeline | Large |
@@ -82,14 +82,32 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 
 **Next unblocked issues (ready to start):**
 - #12 Cleaning summary UI (depends on #11 ✅) — Frontend
-- #15 Chart transformations (depends on #13 ✅, #14 ✅) — Data Pipeline
-- #17 Insight generation (depends on #13 ✅, #14 ✅) — Data Pipeline
+- #16 Analysis dashboard (depends on #15 ✅, #3 ✅) — Frontend
 
-**Recommended start order:** #15 and #17 in parallel (Data Pipeline), #12 (Frontend) in parallel.
+**Recommended start order:** #12 (Frontend), then #16 (Frontend) after #12 is done.
 
 ---
 
 ## Completed issues
+
+### ✅ #17 — Insight generation
+- `generateInsights(quant, text)` exported from `src/lib/insights/index.ts`
+- Rule-based, deterministic — no AI API calls
+- NPS: score severity (positive/neutral/negative), high-detractor alert (>40%), strong-promoter alert (>60%)
+- Rating: mean insight with severity based on threshold (≥4 positive, ≥2.5 neutral)
+- Numeric: mean insight; high-variability alert when stdDev > 50% of mean
+- Category: top-value insight with count and percentage
+- Text: sentiment insight (positive/negative/neutral classification) + top-words insight
+- Returns `InsightReport` with `Insight[]` and plain-English `summary` string
+- 18 unit tests across all column types and severity rules
+- All four CI checks passing
+
+### ✅ #15 — Chart transformations
+- `buildCharts(quant, text)` exported from `src/lib/charts/index.ts`
+- NPS → `nps_gauge`; rating → `bar` (sorted distribution); numeric → `histogram` (10 buckets); category → `pie` (top 10 + "Other"); open_text → `word_cloud_data` (normalized weights)
+- `ChartSpec` union type: `NPSGaugeChart | BarChart | HistogramChart | PieChart | WordCloudDataChart`
+- 13 unit tests covering all chart types, "Other" bucket collapsing, and min===max edge case
+- All four CI checks passing
 
 ### ✅ #14 — Text analysis
 - `analyzeText(dataset, mappings)` exported from `src/lib/text/index.ts`
