@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Column mapping screen — `MappingSection` client component reads `ParseResult` from sessionStorage, infers column types via `inferColumnTypes`, and allows users to override each column's type via a dropdown; confidence badges (high/med/low) signal inference quality; saves final `ColumnMapping[]` to `mapping:${projectId}` in sessionStorage before advancing (#9)
 - Column type inference module (`src/lib/infer/index.ts`) — `inferColumnTypes` infers NPS, rating, numeric, date, category, open_text, id, or unknown for each column using name heuristics and value sampling; returns `ColumnMapping[]` with confidence scores (#8)
 - Data preview screen — upload step parses CSV in the browser, stores `ParseResult` in `sessionStorage`; preview page renders first 25 rows with column headers, row/column count, and parse warnings (#7)
 - `PreviewTable` client component (`src/app/(app)/projects/[projectId]/preview/PreviewTable.tsx`) using `useSyncExternalStore` for hydration-safe sessionStorage reads (#7)

@@ -28,7 +28,7 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 6 | CSV parsing | ✅ done | #5 | Data Pipeline | Medium |
 | 7 | Data preview screen | ✅ done | #6 | Frontend | Medium |
 | 8 | Column type inference | ✅ done | #6 | Data Pipeline | Medium |
-| 9 | Column mapping screen | ⬜ not-started | #7, #8 | Frontend | Medium |
+| 9 | Column mapping screen | ✅ done | #7, #8 | Frontend | Medium |
 | 10 | Schema validation | ⬜ not-started | #6, #8, #9 | Data Pipeline | Small–Medium |
 | 11 | Data cleaning pipeline | ⬜ not-started | #6, #10 | Data Pipeline | Large |
 | 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
@@ -81,13 +81,22 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #9 Column mapping screen (depends on #7 ✅, #8 ✅) — Frontend
+- #10 Schema validation (depends on #6 ✅, #8 ✅, #9 ✅) — Data Pipeline
 
-**Recommended start order:** #9 (Frontend — both dependencies now done).
+**Recommended start order:** #10 (Data Pipeline — all dependencies now done).
 
 ---
 
 ## Completed issues
+
+### ✅ #9 — Column mapping screen
+- `MappingSection` client component (`src/app/(app)/projects/[projectId]/mapping/MappingSection.tsx`)
+- Reads `ParseResult` from `sessionStorage` via `useSyncExternalStore` (same pattern as `PreviewTable`)
+- Runs `inferColumnTypes` via `useMemo` — no redundant re-inference on re-render
+- Renders column name, 3 truncated sample values, inferred type with confidence badge (high/med/low), and editable type dropdown
+- User overrides tracked in a `Map<string, ColumnType>` state — blue border highlights changed selects
+- On "Next: Analyze": merges overrides with inferred mappings, saves `ColumnMapping[]` to `mapping:${projectId}` in `sessionStorage`, navigates to analysis page
+- All four CI checks passing
 
 ### ✅ #8 — Column type inference
 - `inferColumnTypes(dataset: Dataset): ColumnMapping[]` exported from `src/lib/infer/index.ts`
