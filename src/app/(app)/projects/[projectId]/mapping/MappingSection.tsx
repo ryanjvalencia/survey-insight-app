@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ParseResult, ColumnMapping, ColumnType } from "@/types";
 import { inferColumnTypes } from "@/lib/infer";
+import { cleanDataset } from "@/lib/clean";
+import { analyzeQuantitative } from "@/lib/analysis";
+import { analyzeText } from "@/lib/text";
+import { buildCharts } from "@/lib/charts";
+import { generateInsights } from "@/lib/insights";
 
 const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
   () => () => {};
@@ -131,7 +136,14 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
       ...m,
       type: overrides.get(m.name) ?? m.type,
     }));
+    const cleaningResult = cleanDataset(result.dataset, finalMappings);
+    const quant = analyzeQuantitative(cleaningResult.dataset, finalMappings);
+    const text = analyzeText(cleaningResult.dataset, finalMappings);
+    const insights = generateInsights(quant, text);
+    const charts = buildCharts(quant, text);
     sessionStorage.setItem(`mapping:${projectId}`, JSON.stringify(finalMappings));
+    sessionStorage.setItem(`cleaning:${projectId}`, JSON.stringify(cleaningResult.summary));
+    sessionStorage.setItem(`analysis:${projectId}`, JSON.stringify({ quant, text, insights, charts }));
     router.push(`/projects/${projectId}/analysis`);
   }
 

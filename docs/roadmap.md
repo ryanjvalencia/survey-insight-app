@@ -31,11 +31,11 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 9 | Column mapping screen | ✅ done | #7, #8 | Frontend | Medium |
 | 10 | Schema validation | ✅ done | #6, #8, #9 | Data Pipeline | Small–Medium |
 | 11 | Data cleaning pipeline | ✅ done | #6, #10 | Data Pipeline | Large |
-| 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
+| 12 | Cleaning summary UI | ✅ done | #11 | Frontend | Medium |
 | 13 | Quantitative analysis | ✅ done | #11 | Data Pipeline | Large |
 | 14 | Text analysis | ✅ done | #11 | Data Pipeline | Medium |
 | 15 | Chart transformations | ✅ done | #13, #14 | Data Pipeline | Medium |
-| 16 | Analysis dashboard | ⬜ not-started | #15, #3 | Frontend | Large |
+| 16 | Analysis dashboard | ✅ done | #15, #3 | Frontend | Large |
 | 17 | Insight generation | ✅ done | #13, #14 | Data Pipeline | Medium |
 | 18 | Cleaned CSV export | ⬜ not-started | #11, #16 | Data Pipeline | Small–Medium |
 | 19 | Report export | ⬜ not-started | #13, #14, #17, #18 | Data Pipeline | Large |
@@ -81,14 +81,26 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #12 Cleaning summary UI (depends on #11 ✅) — Frontend
-- #16 Analysis dashboard (depends on #15 ✅, #3 ✅) — Frontend
+- #18 Cleaned CSV export (depends on #11 ✅, #16 ✅) — Data Pipeline
 
-**Recommended start order:** #12 (Frontend), then #16 (Frontend) after #12 is done.
+**Recommended start order:** #18 (Data Pipeline — all dependencies done).
 
 ---
 
 ## Completed issues
+
+### ✅ #16 — Analysis dashboard
+- `AnalysisDashboard` client component (`src/app/(app)/projects/[projectId]/analysis/AnalysisDashboard.tsx`)
+- `MappingSection` updated to run full pipeline on "Next: Analyze": `cleanDataset` → `analyzeQuantitative` + `analyzeText` → `generateInsights` + `buildCharts`; stores `cleaning:${projectId}` (summary only) and `analysis:${projectId}` (full payload) in sessionStorage
+- Cleaning summary section: table of per-column trimmed/nullified/clamped/normalized counts; omits clean columns
+- Insights section: cards with severity colour coding (emerald = positive, red = negative)
+- Charts section: NPS gauge with score + segment percentages; bar/histogram with inline bars; pie/category with frequency table; word cloud rendered with proportional font sizes
+- All four CI checks passing
+
+### ✅ #12 — Cleaning summary UI
+- Part of `AnalysisDashboard` — see #16 above for implementation details
+- Shows total changes count, per-column breakdown table (trimmed/nullified/clamped/normalized); nullified and clamped values highlighted amber
+- All four CI checks passing
 
 ### ✅ #17 — Insight generation
 - `generateInsights(quant, text)` exported from `src/lib/insights/index.ts`
