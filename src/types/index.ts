@@ -43,6 +43,29 @@ export interface ParseResult {
   originalFilename: string;
 }
 
+export type SchemaIssueCode =
+  | "NO_ANALYSABLE_COLUMNS"
+  | "COLUMN_ALL_EMPTY"
+  | "COLUMN_LOW_FILL_RATE"
+  | "NPS_INVALID_VALUES"
+  | "RATING_INVALID_VALUES"
+  | "NUMERIC_INVALID_VALUES"
+  | "DATE_INVALID_VALUES";
+
+export interface SchemaIssue {
+  columnName: string;
+  columnType: ColumnType;
+  code: SchemaIssueCode;
+  message: string;
+  severity: "error" | "warning";
+  affectedCount: number;
+}
+
+export interface SchemaValidationResult {
+  valid: boolean;
+  issues: SchemaIssue[];
+}
+
 export type ValidationCode =
   | "INVALID_MIME_TYPE"
   | "FILE_TOO_LARGE"

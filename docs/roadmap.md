@@ -29,7 +29,7 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 7 | Data preview screen | ✅ done | #6 | Frontend | Medium |
 | 8 | Column type inference | ✅ done | #6 | Data Pipeline | Medium |
 | 9 | Column mapping screen | ✅ done | #7, #8 | Frontend | Medium |
-| 10 | Schema validation | ⬜ not-started | #6, #8, #9 | Data Pipeline | Small–Medium |
+| 10 | Schema validation | ✅ done | #6, #8, #9 | Data Pipeline | Small–Medium |
 | 11 | Data cleaning pipeline | ⬜ not-started | #6, #10 | Data Pipeline | Large |
 | 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
 | 13 | Quantitative analysis | ⬜ not-started | #11 | Data Pipeline | Large |
@@ -81,13 +81,22 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #10 Schema validation (depends on #6 ✅, #8 ✅, #9 ✅) — Data Pipeline
+- #11 Data cleaning pipeline (depends on #6 ✅, #10 ✅) — Data Pipeline
 
-**Recommended start order:** #10 (Data Pipeline — all dependencies now done).
+**Recommended start order:** #11 (Data Pipeline — all dependencies now done).
 
 ---
 
 ## Completed issues
+
+### ✅ #10 — Schema validation
+- `validateSchema(dataset, mappings)` exported from `src/lib/schema/index.ts`
+- Checks for: no analysable columns (error), empty columns (error), low fill rate <50% (warning), NPS out of integer 0–10 range (warning), invalid rating/numeric/date values (warning)
+- `ignore` and `id` columns are skipped entirely
+- `SchemaIssueCode`, `SchemaIssue`, `SchemaValidationResult` types added to `src/types/index.ts`
+- Messages include counts and percentages only — no cell values
+- 22 unit tests across all column types, structural errors, and edge cases
+- All four CI checks passing
 
 ### ✅ #9 — Column mapping screen
 - `MappingSection` client component (`src/app/(app)/projects/[projectId]/mapping/MappingSection.tsx`)

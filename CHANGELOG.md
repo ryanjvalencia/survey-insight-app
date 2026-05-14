@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Schema validation module (`src/lib/schema/index.ts`) — `validateSchema(dataset, mappings)` checks for empty columns, low fill rate, and invalid values per column type (NPS 0–10, positive-integer rating, numeric, parseable date); returns `SchemaValidationResult` with per-column `SchemaIssue[]`; never logs or returns cell values (#10)
 - Column mapping screen — `MappingSection` client component reads `ParseResult` from sessionStorage, infers column types via `inferColumnTypes`, and allows users to override each column's type via a dropdown; confidence badges (high/med/low) signal inference quality; saves final `ColumnMapping[]` to `mapping:${projectId}` in sessionStorage before advancing (#9)
 - Column type inference module (`src/lib/infer/index.ts`) — `inferColumnTypes` infers NPS, rating, numeric, date, category, open_text, id, or unknown for each column using name heuristics and value sampling; returns `ColumnMapping[]` with confidence scores (#8)
 - Data preview screen — upload step parses CSV in the browser, stores `ParseResult` in `sessionStorage`; preview page renders first 25 rows with column headers, row/column count, and parse warnings (#7)
