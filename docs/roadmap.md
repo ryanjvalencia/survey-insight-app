@@ -37,8 +37,8 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 15 | Chart transformations | ✅ done | #13, #14 | Data Pipeline | Medium |
 | 16 | Analysis dashboard | ✅ done | #15, #3 | Frontend | Large |
 | 17 | Insight generation | ✅ done | #13, #14 | Data Pipeline | Medium |
-| 18 | Cleaned CSV export | ⬜ not-started | #11, #16 | Data Pipeline | Small–Medium |
-| 19 | Report export | ⬜ not-started | #13, #14, #17, #18 | Data Pipeline | Large |
+| 18 | Cleaned CSV export | ✅ done | #11, #16 | Data Pipeline | Small–Medium |
+| 19 | Report export | ✅ done | #13, #14, #17, #18 | Data Pipeline | Large |
 | 20 | Supabase persistence | ⬜ not-started | #1, #11, #13 | Data Pipeline | Large |
 | 21 | Authentication | ⬜ not-started | #20 | Frontend + Data Pipeline | Medium |
 | 22 | Security and privacy audit | ⬜ not-started | #21, #5–#19 | Security/Privacy | Large |
@@ -81,13 +81,27 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #18 Cleaned CSV export (depends on #11 ✅, #16 ✅) — Data Pipeline
+- #20 Supabase persistence — **BLOCKED: requires human to configure Supabase project and provide credentials**
 
-**Recommended start order:** #18 (Data Pipeline — all dependencies done).
+**Action required by human:** Configure Supabase project (create project, run schema migrations, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`).
 
 ---
 
 ## Completed issues
+
+### ✅ #19 — Report export
+- `ReportSection` client component (`src/app/(app)/projects/[projectId]/report/ReportSection.tsx`)
+- Printable report sections: key insights list, quantitative summary (NPS, rating, numeric, category), open-text summary
+- `print:hidden` Tailwind class hides export buttons from printed output
+- "Print / Save PDF" uses `window.print()` — no PDF library dependency
+- "Download CSV" re-runs `cleanDataset` from stored sessionStorage data and triggers browser download via `Blob` + `URL.createObjectURL`
+- All four CI checks passing
+
+### ✅ #18 — Cleaned CSV export
+- `serializeCSV(dataset: Dataset): string` exported from `src/lib/export/index.ts`
+- RFC 4180 compliant: CRLF line endings, quotes values containing commas/quotes/newlines, escapes embedded quotes via `""`
+- 8 unit tests covering all quoting scenarios
+- All four CI checks passing
 
 ### ✅ #16 — Analysis dashboard
 - `AnalysisDashboard` client component (`src/app/(app)/projects/[projectId]/analysis/AnalysisDashboard.tsx`)
