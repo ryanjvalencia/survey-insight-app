@@ -30,7 +30,7 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 8 | Column type inference | ✅ done | #6 | Data Pipeline | Medium |
 | 9 | Column mapping screen | ✅ done | #7, #8 | Frontend | Medium |
 | 10 | Schema validation | ✅ done | #6, #8, #9 | Data Pipeline | Small–Medium |
-| 11 | Data cleaning pipeline | ⬜ not-started | #6, #10 | Data Pipeline | Large |
+| 11 | Data cleaning pipeline | ✅ done | #6, #10 | Data Pipeline | Large |
 | 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
 | 13 | Quantitative analysis | ⬜ not-started | #11 | Data Pipeline | Large |
 | 14 | Text analysis | ⬜ not-started | #11 | Data Pipeline | Medium |
@@ -81,13 +81,28 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #11 Data cleaning pipeline (depends on #6 ✅, #10 ✅) — Data Pipeline
+- #12 Cleaning summary UI (depends on #11 ✅) — Frontend
+- #13 Quantitative analysis (depends on #11 ✅) — Data Pipeline
+- #14 Text analysis (depends on #11 ✅) — Data Pipeline
 
-**Recommended start order:** #11 (Data Pipeline — all dependencies now done).
+**Recommended start order:** #13 and #14 in parallel (Data Pipeline), then #12 (Frontend) after both complete.
 
 ---
 
 ## Completed issues
+
+### ✅ #11 — Data cleaning pipeline
+- `cleanDataset(dataset, mappings)` exported from `src/lib/clean/index.ts`
+- NPS: non-integer / non-numeric → nullify; out of [0,10] → clamp
+- Rating: non-integer or < 1 → nullify/clamp to 1
+- Numeric: strips `$£€,` formatting; non-finite → nullify
+- Date: parses and normalizes to `YYYY-MM-DD`; unparseable → nullify
+- All types: leading/trailing whitespace trimmed
+- `ignore` and `id` and `open_text` columns: trim only
+- Returns `CleaningResult` with cleaned `Dataset` + `CleaningSummary` (per-column counts of trimmed/nullified/clamped/normalized; never logs cell values)
+- `ColumnCleaningStats`, `CleaningSummary`, `CleaningResult` types added to `src/types/index.ts`
+- 26 unit tests covering all column types, summary accuracy, and dataset integrity
+- All four CI checks passing
 
 ### ✅ #10 — Schema validation
 - `validateSchema(dataset, mappings)` exported from `src/lib/schema/index.ts`

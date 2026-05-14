@@ -43,6 +43,26 @@ export interface ParseResult {
   originalFilename: string;
 }
 
+export interface ColumnCleaningStats {
+  columnName: string;
+  trimmed: number;
+  nullified: number;
+  clamped: number;
+  normalized: number;
+}
+
+export interface CleaningSummary {
+  totalRows: number;
+  totalColumns: number;
+  columns: ColumnCleaningStats[];
+  totalChanges: number;
+}
+
+export interface CleaningResult {
+  dataset: Dataset;
+  summary: CleaningSummary;
+}
+
 export type SchemaIssueCode =
   | "NO_ANALYSABLE_COLUMNS"
   | "COLUMN_ALL_EMPTY"
