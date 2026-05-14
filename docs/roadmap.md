@@ -32,8 +32,8 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 10 | Schema validation | ✅ done | #6, #8, #9 | Data Pipeline | Small–Medium |
 | 11 | Data cleaning pipeline | ✅ done | #6, #10 | Data Pipeline | Large |
 | 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
-| 13 | Quantitative analysis | ⬜ not-started | #11 | Data Pipeline | Large |
-| 14 | Text analysis | ⬜ not-started | #11 | Data Pipeline | Medium |
+| 13 | Quantitative analysis | ✅ done | #11 | Data Pipeline | Large |
+| 14 | Text analysis | ✅ done | #11 | Data Pipeline | Medium |
 | 15 | Chart transformations | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
 | 16 | Analysis dashboard | ⬜ not-started | #15, #3 | Frontend | Large |
 | 17 | Insight generation | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
@@ -82,14 +82,34 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 
 **Next unblocked issues (ready to start):**
 - #12 Cleaning summary UI (depends on #11 ✅) — Frontend
-- #13 Quantitative analysis (depends on #11 ✅) — Data Pipeline
-- #14 Text analysis (depends on #11 ✅) — Data Pipeline
+- #15 Chart transformations (depends on #13 ✅, #14 ✅) — Data Pipeline
+- #17 Insight generation (depends on #13 ✅, #14 ✅) — Data Pipeline
 
-**Recommended start order:** #13 and #14 in parallel (Data Pipeline), then #12 (Frontend) after both complete.
+**Recommended start order:** #15 and #17 in parallel (Data Pipeline), #12 (Frontend) in parallel.
 
 ---
 
 ## Completed issues
+
+### ✅ #14 — Text analysis
+- `analyzeText(dataset, mappings)` exported from `src/lib/text/index.ts`
+- Analyses `open_text` columns only; skips all other types
+- Word frequency: tokenizes to lowercase, strips punctuation, removes stop words and words < 3 chars; returns sorted `WordFrequency[]` with count and percentage
+- `topWords`: top 20 by frequency
+- Response length stats: mean, median, min, max character lengths
+- Proxy sentiment: counts positive/negative/neutral responses based on word-list matching (no AI API); returns counts + percentages
+- 17 unit tests covering column selection, word counting, stop word filtering, sentiment classification, multi-column datasets
+- All four CI checks passing
+
+### ✅ #13 — Quantitative analysis
+- `analyzeQuantitative(dataset, mappings)` exported from `src/lib/analysis/index.ts`
+- NPS: score, promoter/passive/detractor counts and percentages, mean
+- Rating: mean, median, min, max, value distribution
+- Numeric: mean, median, std deviation, min, max
+- Category: frequency table sorted by count, unique count
+- Skips empty values and non-numeric strings; skips id, ignore, open_text, date, unknown columns
+- 17 unit tests covering all column types and edge cases
+- All four CI checks passing
 
 ### ✅ #11 — Data cleaning pipeline
 - `cleanDataset(dataset, mappings)` exported from `src/lib/clean/index.ts`

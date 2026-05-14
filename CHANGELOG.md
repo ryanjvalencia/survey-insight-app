@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Quantitative analysis module (`src/lib/analysis/index.ts`) — `analyzeQuantitative` computes NPS score/segments, rating distributions, numeric mean/median/stdDev, and category frequencies from cleaned datasets (#13)
+- Text analysis module (`src/lib/text/index.ts`) — `analyzeText` computes word frequencies (stop-word filtered), response length stats, and proxy sentiment (word-list based, no AI API) for `open_text` columns (#14)
 - Data cleaning pipeline (`src/lib/clean/index.ts`) — `cleanDataset(dataset, mappings)` trims whitespace, clamps NPS/rating out-of-range values, normalizes numeric formatting (`$£€,` stripped) and dates to ISO `YYYY-MM-DD`, and nullifies unparseable values; returns `CleaningResult` with cleaned dataset and per-column `CleaningSummary` (#11)
 - Schema validation module (`src/lib/schema/index.ts`) — `validateSchema(dataset, mappings)` checks for empty columns, low fill rate, and invalid values per column type (NPS 0–10, positive-integer rating, numeric, parseable date); returns `SchemaValidationResult` with per-column `SchemaIssue[]`; never logs or returns cell values (#10)
 - Column mapping screen — `MappingSection` client component reads `ParseResult` from sessionStorage, infers column types via `inferColumnTypes`, and allows users to override each column's type via a dropdown; confidence badges (high/med/low) signal inference quality; saves final `ColumnMapping[]` to `mapping:${projectId}` in sessionStorage before advancing (#9)
