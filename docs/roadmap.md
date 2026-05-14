@@ -21,13 +21,13 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | # | Title | Status | Depends on | Agent | Complexity |
 |---|---|---|---|---|---|
 | 1 | Base project structure | ✅ done | — | Frontend | Small |
-| 2 | Landing page | ⬜ not-started | #1 | Frontend | Small |
+| 2 | Landing page | ✅ done | #1 | Frontend | Small |
 | 3 | Dashboard shell | ✅ done | #1 | Frontend | Small |
-| 4 | Upload page UI | ⬜ not-started | #3 | Frontend | Medium |
-| 5 | CSV validation | ⬜ not-started | #1 | Data Pipeline | Small–Medium |
-| 6 | CSV parsing | ⬜ not-started | #5 | Data Pipeline | Medium |
-| 7 | Data preview screen | ⬜ not-started | #6 | Frontend | Medium |
-| 8 | Column type inference | ⬜ not-started | #6 | Data Pipeline | Medium |
+| 4 | Upload page UI | ✅ done | #3 | Frontend | Medium |
+| 5 | CSV validation | ✅ done | #1 | Data Pipeline | Small–Medium |
+| 6 | CSV parsing | ✅ done | #5 | Data Pipeline | Medium |
+| 7 | Data preview screen | ✅ done | #6 | Frontend | Medium |
+| 8 | Column type inference | ✅ done | #6 | Data Pipeline | Medium |
 | 9 | Column mapping screen | ⬜ not-started | #7, #8 | Frontend | Medium |
 | 10 | Schema validation | ⬜ not-started | #6, #8, #9 | Data Pipeline | Small–Medium |
 | 11 | Data cleaning pipeline | ⬜ not-started | #6, #10 | Data Pipeline | Large |
@@ -81,15 +81,60 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #2 Landing page (depends on #1 ✅)
-- #4 Upload page UI (depends on #3 ✅)
-- #5 CSV validation (depends on #1 ✅)
+- #9 Column mapping screen (depends on #7 ✅, #8 ✅) — Frontend
 
-**Recommended start order:** #4 + #5 in parallel — #4 builds the upload UI, #5 starts the data pipeline. Both are independent of each other.
+**Recommended start order:** #9 (Frontend — both dependencies now done).
 
 ---
 
 ## Completed issues
+
+### ✅ #8 — Column type inference
+- `inferColumnTypes(dataset: Dataset): ColumnMapping[]` exported from `src/lib/infer/index.ts`
+- Name-hint heuristics: nps, id, rating, date, open_text, category (underscore-separated column names handled)
+- Value heuristics: NPS (integers 0–10 with zero present), rating (integers 1–10 low-cardinality), numeric, date (ISO + slash formats), category, open_text
+- Name hint wins; value evidence used as confidence signal
+- Samples ≤100 rows — never logs cell values
+- 24 unit tests covering all ColumnType values + edge cases + confidence checks
+- All four CI checks passing
+
+### ✅ #7 — Data preview screen
+- `UploadSection` parses the selected file via `parseCSV`, stores `ParseResult` in `sessionStorage`, navigates programmatically
+- `PreviewTable` client component reads from `sessionStorage` via `useSyncExternalStore` (avoids hydration mismatch and React effect lint rules)
+- Shows first 25 rows in a scrollable table with column headers
+- Displays column count, row count, "Showing first 25 rows" badge when truncated
+- Parse warnings rendered in an amber banner
+- Empty state shown when no session data is present
+- All four CI checks passing
+
+### ✅ #6 — CSV parsing
+- `parseCSV(text, filename)` — full RFC 4180 parser: BOM, CRLF/LF/CR, quoted fields with embedded commas and newlines, escaped quotes (`""`)
+- Short rows filled with `""`, long rows truncated — both with count-only warnings (no cell values)
+- `sanitizeFilename` applied to `originalFilename` before it leaves the module
+- 27 unit tests across basic parsing, line endings, BOM, quoted fields, row-length mismatches, degenerate inputs, and privacy
+- All four CI checks passing
+
+### ✅ #2 — Landing page
+- Hero with headline, subheadline, two CTAs, and constraint note (10 MB / 50k rows / no sign-up)
+- "How it works" section: numbered 5-step workflow
+- "Built for" grid: 4 target user cards with pain points
+- Bottom CTA repeat and minimal footer
+- Server component, no `"use client"`, all Tailwind v4, `next/link` only
+- All four CI checks passing
+
+### ✅ #5 — CSV validation
+- `validateFileMetadata` — validates name, size, MIME type; no file read required
+- `validateCSVContent` — strips BOM, checks headers, data rows, row count (≤50 k), column consistency
+- `ValidationResult`, `ValidationIssue`, `ValidationCode` types added to `src/types/index.ts`
+- 24 unit tests covering happy paths, edge cases (BOM, CRLF, quoted fields, boundary row counts), privacy (no cell values in messages)
+- All four CI checks passing
+
+### ✅ #4 — Upload page UI
+- `DropZone` client component: drag-and-drop, click-to-browse, file validation (CSV type, 10 MB limit)
+- Visual states: idle, drag-over, file-selected, error
+- `UploadSection` client wrapper: holds selected file state, disables Next button until valid file chosen
+- Upload page refactored to server component delegating to `UploadSection`
+- All four CI checks passing
 
 ### ✅ #1 — Base project structure
 - Resolved nested project directory

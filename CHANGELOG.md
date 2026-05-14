@@ -8,6 +8,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Column type inference module (`src/lib/infer/index.ts`) — `inferColumnTypes` infers NPS, rating, numeric, date, category, open_text, id, or unknown for each column using name heuristics and value sampling; returns `ColumnMapping[]` with confidence scores (#8)
+- Data preview screen — upload step parses CSV in the browser, stores `ParseResult` in `sessionStorage`; preview page renders first 25 rows with column headers, row/column count, and parse warnings (#7)
+- `PreviewTable` client component (`src/app/(app)/projects/[projectId]/preview/PreviewTable.tsx`) using `useSyncExternalStore` for hydration-safe sessionStorage reads (#7)
+
+---
+
+### Added (previous unreleased)
 - Dashboard shell (`src/app/(app)/layout.tsx`) — persistent app nav wrapping all app routes via route group, landing page excluded (#3)
 - `Nav` component (`src/components/layout/Nav.tsx`) — sticky top nav with active-state highlighting via `usePathname` (#3)
 - `StepNav` component (`src/components/layout/StepNav.tsx`) — per-project workflow step strip with active step highlighting (#3)

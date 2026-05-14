@@ -42,3 +42,25 @@ export interface ParseResult {
   dataset: Dataset;
   originalFilename: string;
 }
+
+export type ValidationCode =
+  | "INVALID_MIME_TYPE"
+  | "FILE_TOO_LARGE"
+  | "EMPTY_FILE"
+  | "NO_HEADERS"
+  | "NO_DATA_ROWS"
+  | "INCONSISTENT_COLUMNS"
+  | "EXCEEDS_ROW_LIMIT";
+
+export interface ValidationIssue {
+  code: ValidationCode;
+  message: string;
+  severity: "error" | "warning";
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  issues: ValidationIssue[];
+  rowCount?: number;
+  columnCount?: number;
+}
