@@ -1,0 +1,144 @@
+name: Agent Task
+description: A structured task for the agent build system. Use this template for all planned features and improvements.
+title: "[Task] "
+labels: ["agent-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Agent task spec
+        Fill out every section. Incomplete specs will be sent back to the Product Manager agent for clarification before any implementation begins.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One sentence describing what this task achieves and why it matters.
+      placeholder: "Implement CSV parsing so the data pipeline can convert uploaded files into a structured dataset."
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: Bulleted list of specific things the implementation must do.
+      placeholder: |
+        - Accept a File or Buffer as input
+        - Auto-detect delimiter (comma, semicolon, tab)
+        - Handle BOM (byte order mark)
+        - Return headers, rows, rowCount, and parseWarnings
+        - Truncate at 50,000 rows with a warning
+        - Never log cell values
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checkboxes that must all be checked before this issue can be closed.
+      placeholder: |
+        - [ ] Parses comma-delimited CSV correctly
+        - [ ] Parses semicolon-delimited CSV correctly
+        - [ ] Strips BOM from headers
+        - [ ] Files over 50,000 rows are truncated with a warning
+        - [ ] No raw row content appears in any log
+        - [ ] npm run lint exits 0
+        - [ ] npm run typecheck exits 0
+        - [ ] npm test exits 0
+        - [ ] npm run build exits 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-files
+    attributes:
+      label: Suggested files
+      description: Full paths from repo root for every file to create or modify.
+      placeholder: |
+        **Create:**
+        - src/lib/parse/parse-csv.ts
+        - src/lib/parse/parse-csv.test.ts
+
+        **Modify:**
+        - src/types/index.ts (add ParseResult type)
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests-required
+    attributes:
+      label: Tests required
+      description: Specific test cases that must exist. Data pipeline functions require tests; UI-only issues may have fewer.
+      placeholder: |
+        - Unit test: valid comma CSV returns correct headers and row count
+        - Unit test: semicolon delimiter is auto-detected
+        - Unit test: BOM is stripped from first header
+        - Unit test: file over 50,000 rows is truncated with a warning
+        - Unit test: malformed row produces a warning, not a throw
+        - Unit test: empty file returns an error
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Issue numbers that must be done before this issue can start.
+      placeholder: |
+        - #5 CSV validation (must be done first — parsing runs after validation passes)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated complexity
+      options:
+        - Small (1–3 hours)
+        - Medium (3–6 hours)
+        - Large (6–12 hours)
+        - Extra large (12+ hours — consider splitting)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent-role
+    attributes:
+      label: Agent role
+      description: Which agent is responsible for implementing this?
+      options:
+        - Frontend Agent
+        - Data Pipeline Agent
+        - Both (Frontend + Data Pipeline)
+        - Documentation Agent
+        - Release Agent
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security-review
+    attributes:
+      label: Security/privacy review required?
+      description: Check all that apply. If any are checked, the Security/Privacy Agent must review before merge.
+      options:
+        - label: "Touches file upload handling"
+        - label: "Touches CSV parsing or data processing"
+        - label: "Touches Route Handlers that handle user data"
+        - label: "Touches authentication or session management"
+        - label: "Touches database queries or Supabase config"
+        - label: "Touches data export"
+        - label: "Touches any external API call"
+        - label: "Adds a new npm dependency"
+
+  - type: textarea
+    id: known-limitations
+    attributes:
+      label: Known limitations (optional)
+      description: Anything intentionally left out of scope for this issue.
+      placeholder: |
+        - XLSX support is excluded (CSV only for MVP)
+        - Tab-delimited files are supported but not tested with real-world data yet
+    validations:
+      required: false
