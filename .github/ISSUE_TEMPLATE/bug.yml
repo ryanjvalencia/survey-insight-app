@@ -1,0 +1,84 @@
+name: Bug report
+description: Something is broken. Use this template for regressions, errors, or incorrect behavior found during QA or user testing.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug report
+        Provide enough detail that any agent or developer can reproduce the issue from scratch.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the bug.
+      placeholder: "The CSV parsing module throws an unhandled error when the file has a semicolon delimiter and a BOM."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected?
+      placeholder: "The parser should detect the semicolon delimiter and strip the BOM, returning the correct headers."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to /projects/demo/upload
+        2. Upload the attached file (semicolon-delimited with BOM)
+        3. Click "Analyze"
+        4. Observe error: "Cannot read properties of undefined"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - Browser: Chrome 124
+        - OS: Windows 11
+        - Node: 20.x
+        - Branch: main
+        - Last passing commit: abc1234
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "Critical — blocks a core workflow (upload, parse, analyze, export)"
+        - "High — breaks a feature but a workaround exists"
+        - "Medium — cosmetic or edge-case issue"
+        - "Low — minor annoyance"
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-files
+    attributes:
+      label: Suspected files (optional)
+      description: If you know which files are involved, list them.
+      placeholder: |
+        - src/lib/parse/parse-csv.ts
+        - src/app/api/upload/validate/route.ts
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy-flag
+    attributes:
+      label: Privacy / security concern?
+      options:
+        - label: "This bug could expose user data to the wrong user"
+        - label: "This bug could log raw user data"
+        - label: "This bug is in file upload or auth handling"
