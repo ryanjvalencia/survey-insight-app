@@ -33,7 +33,7 @@ vi.mock("@/lib/supabase/client", () => {
     });
     return c;
   }
-  return { supabase: chain() };
+  return { getSupabase: () => chain() };
 });
 
 import {
