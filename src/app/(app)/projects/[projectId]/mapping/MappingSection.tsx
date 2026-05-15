@@ -10,6 +10,7 @@ import { analyzeQuantitative } from "@/lib/analysis";
 import { analyzeText } from "@/lib/text";
 import { buildCharts } from "@/lib/charts";
 import { generateInsights } from "@/lib/insights";
+import { updateProjectStatus } from "@/lib/db/projects";
 
 const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
   () => () => {};
@@ -130,7 +131,7 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
     setOverrides((prev) => new Map(prev).set(columnName, newType));
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (!inferredMappings || !result) return;
     const finalMappings: ColumnMapping[] = inferredMappings.map((m) => ({
       ...m,
@@ -144,6 +145,7 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
     sessionStorage.setItem(`mapping:${projectId}`, JSON.stringify(finalMappings));
     sessionStorage.setItem(`cleaning:${projectId}`, JSON.stringify(cleaningResult.summary));
     sessionStorage.setItem(`analysis:${projectId}`, JSON.stringify({ quant, text, insights, charts }));
+    await updateProjectStatus(projectId, "analyzed").catch(() => {});
     router.push(`/projects/${projectId}/analysis`);
   }
 

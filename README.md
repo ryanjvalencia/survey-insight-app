@@ -24,7 +24,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Required environment variables
 
-None required for local development yet. Supabase and AI API keys will be documented here when those features are added (issues #20 and beyond).
+Create `.env.local` at the project root (gitignored — never commit this file):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Find these in your Supabase project under **Settings → API**. Use the **Project URL** and the **anon / public** key only. Never put the service role key in a `NEXT_PUBLIC_` variable.
 
 ## Architecture
 

@@ -39,7 +39,7 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 17 | Insight generation | ✅ done | #13, #14 | Data Pipeline | Medium |
 | 18 | Cleaned CSV export | ✅ done | #11, #16 | Data Pipeline | Small–Medium |
 | 19 | Report export | ✅ done | #13, #14, #17, #18 | Data Pipeline | Large |
-| 20 | Supabase persistence | ⬜ not-started | #1, #11, #13 | Data Pipeline | Large |
+| 20 | Supabase persistence | ✅ done | #1, #11, #13 | Data Pipeline | Large |
 | 21 | Authentication | ⬜ not-started | #20 | Frontend + Data Pipeline | Medium |
 | 22 | Security and privacy audit | ⬜ not-started | #21, #5–#19 | Security/Privacy | Large |
 | 23 | Deployment | ⬜ not-started | #22 | Release | Medium |
@@ -81,9 +81,7 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #20 Supabase persistence — **BLOCKED: requires human to configure Supabase project and provide credentials**
-
-**Action required by human:** Configure Supabase project (create project, run schema migrations, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`).
+- #21 Authentication — depends on #20 ✅
 
 ---
 

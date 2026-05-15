@@ -55,13 +55,44 @@ src/components/
 
 ```
 src/lib/
+  supabase/
+    client.ts       Singleton Supabase browser/server client (anon key)
+  db/
+    projects.ts     CRUD for the projects table: createProject, getProject, listProjects, updateProjectStatus
+    datasets.ts     Insert for the datasets table: saveDataset
   data/
-    index.ts        Placeholder — CSV parsing, analysis, export modules go here
+    index.ts        Stub
+  validate/         validateFileMetadata, validateCSVContent
+  parse/            parseCSV — RFC 4180 parser
+  infer/            inferColumnTypes
+  schema/           validateSchema
+  clean/            cleanDataset
+  analysis/         analyzeQuantitative
+  text/             analyzeText
+  charts/           buildCharts
+  insights/         generateInsights
+  export/           serializeCSV
 src/types/
-  index.ts          Shared domain types: Project, Dataset, ColumnMapping, ColumnType, ParseResult
+  index.ts          Shared domain types: Project, Dataset, ColumnMapping, ColumnType, ParseResult, etc.
 ```
 
 **Convention:** All business logic lives in `src/lib/`. React components import from `src/lib/` but never define data logic themselves.
+
+---
+
+## Persistence pattern (as of #20)
+
+**Raw survey data:** browser sessionStorage only — never sent to the database.
+
+**Metadata persisted to Supabase:**
+- `projects` table — project name, status (`created` → `uploaded` → `analyzed`), timestamps
+- `datasets` table — row count, column count, sanitized original filename; linked to project
+
+**Status flow:** `createProject` (Server Action in `projects/new`) → `saveDataset` + `updateProjectStatus("uploaded")` (in `UploadSection`) → `updateProjectStatus("analyzed")` (in `MappingSection` after full pipeline).
+
+**Server Actions:** `projects/new/page.tsx` defines an inline Server Action (`"use server"`) to create a project and redirect. No Route Handlers are used for persistence.
+
+**RLS:** Both tables have RLS enabled. Policies are permissive (`using (true)`) until authentication is added in #21, at which point they will be replaced with `auth.uid() = user_id` row-scoped policies.
 
 ---
 
