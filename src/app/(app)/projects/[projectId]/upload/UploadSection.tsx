@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DropZone, { type SelectedFile } from "@/components/upload/DropZone";
 import { parseCSV } from "@/lib/parse";
+import { saveDataset } from "@/lib/db/datasets";
+import { updateProjectStatus } from "@/lib/db/projects";
 
 interface UploadSectionProps {
   projectId: string;
@@ -23,6 +25,16 @@ export default function UploadSection({ projectId }: UploadSectionProps) {
       const text = await file.file.text();
       const result = parseCSV(text, file.name);
       sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
+
+      // Persist metadata only — raw rows stay in sessionStorage, never sent to DB
+      await saveDataset({
+        projectId,
+        originalFilename: result.originalFilename,
+        rowCount: result.dataset.rowCount,
+        columnCount: result.dataset.headers.length,
+      });
+      await updateProjectStatus(projectId, "uploaded");
+
       router.push(`/projects/${projectId}/preview`);
     } catch {
       setError("Failed to read the file. Please try again.");

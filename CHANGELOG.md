@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Supabase persistence (#20) — `@supabase/supabase-js` installed; `src/lib/supabase/client.ts` singleton client; `src/lib/db/projects.ts` (createProject, getProject, listProjects, updateProjectStatus) and `src/lib/db/datasets.ts` (saveDataset); 13 unit tests for all DB functions. Project creation now writes to Supabase via a Server Action; dashboard fetches live project list; upload step persists dataset metadata (row count, column count, sanitized filename — no raw rows); mapping step updates project status to `analyzed`. RLS enabled on both tables with open policies for pre-auth phase.
+
+### Added (previous)
 - Report page (`src/app/(app)/projects/[projectId]/report/`) — `ReportSection` renders printable insights/stats summary and wires CSV download (re-runs cleaning from sessionStorage) and print-to-PDF via `window.print()` (#18, #19)
 - Analysis dashboard (`src/app/(app)/projects/[projectId]/analysis/`) — `AnalysisDashboard` client component reads sessionStorage and renders cleaning summary, rule-based insights, and charts (NPS gauge, rating/numeric bar charts, category frequency table, word cloud); `MappingSection` updated to run the full pipeline on "Next: Analyze" (#12, #16)
 - Chart transformations module (`src/lib/charts/index.ts`) — `buildCharts` converts analysis results into `ChartSpec` objects: NPS gauge, rating bar, numeric histogram (10 buckets), category pie (top 10 + Other), and word-cloud weight data (#15)

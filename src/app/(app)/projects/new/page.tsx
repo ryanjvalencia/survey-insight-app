@@ -1,5 +1,14 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import { createProject } from "@/lib/db/projects";
+
+async function create(formData: FormData) {
+  "use server";
+  const name = (formData.get("name") as string | null)?.trim();
+  if (!name) return;
+  const project = await createProject(name);
+  redirect(`/projects/${project.id}/upload`);
+}
 
 export default function NewProjectPage() {
   return (
@@ -11,12 +20,7 @@ export default function NewProjectPage() {
         backLabel="Back to projects"
       />
 
-      {/*
-        Placeholder form — project creation with persistence will be
-        implemented in the Supabase issue. For now, navigate directly
-        to the upload step with a demo project ID.
-      */}
-      <div className="space-y-4">
+      <form action={create} className="space-y-4">
         <div>
           <label
             htmlFor="name"
@@ -26,24 +30,21 @@ export default function NewProjectPage() {
           </label>
           <input
             id="name"
+            name="name"
             type="text"
+            required
             placeholder="e.g. Q2 Customer Survey"
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
         </div>
 
-        <p className="text-xs text-zinc-400">
-          Project saving requires a database — coming in a later step. Use the
-          button below to explore the upload workflow with a demo project.
-        </p>
-
-        <Link
-          href="/projects/demo/upload"
+        <button
+          type="submit"
           className="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
         >
-          Continue to upload →
-        </Link>
-      </div>
+          Create project →
+        </button>
+      </form>
     </div>
   );
 }
