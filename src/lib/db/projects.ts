@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { getSupabase } from "@/lib/supabase/client";
 import type { Project, ProjectStatus } from "@/types";
 
 type Row = {
@@ -18,7 +18,7 @@ function toProject(row: Row): Project {
 }
 
 export async function createProject(name: string): Promise<Project> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("projects")
     .insert({ name, status: "created" })
     .select()
@@ -28,7 +28,7 @@ export async function createProject(name: string): Promise<Project> {
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("projects")
     .select()
     .eq("id", id)
@@ -38,7 +38,7 @@ export async function getProject(id: string): Promise<Project | null> {
 }
 
 export async function listProjects(): Promise<Project[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("projects")
     .select()
     .order("created_at", { ascending: false });
@@ -50,7 +50,7 @@ export async function updateProjectStatus(
   id: string,
   status: ProjectStatus,
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("projects")
     .update({ status })
     .eq("id", id);

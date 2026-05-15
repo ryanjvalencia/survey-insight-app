@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { getSupabase } from "@/lib/supabase/client";
 
 export interface DatasetRecord {
   id: string;
@@ -35,7 +35,7 @@ export async function saveDataset(input: {
   rowCount: number;
   columnCount: number;
 }): Promise<DatasetRecord> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("datasets")
     .insert({
       project_id: input.projectId,
