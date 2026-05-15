@@ -1,6 +1,6 @@
 # Project Handoff — Survey Insight
 **Date:** 2026-05-14
-**Status:** Foundation complete, two roadmap issues done, no open bugs, CI green.
+**Status:** Issues #1–19 complete. Full browser-side MVP pipeline working. Blocked on Supabase configuration for #20–23.
 
 ---
 
@@ -12,41 +12,49 @@ Full spec: [docs/product-spec.md](product-spec.md)
 
 ---
 
-## What has been built
+## What has been built (issues #1–19)
 
-### ✅ Issue #1 — Base project structure
-- Single-root Next.js 16 App Router project under `src/`
-- All four CI scripts wired: `lint`, `typecheck`, `test`, `build`
-- Vitest installed and passing
-- TypeScript strict mode
-- Core domain types in `src/types/index.ts`: `Project`, `Dataset`, `ColumnType`, `ColumnMapping`, `ParseResult`
-- Placeholder workflow pages for all routes (no data logic yet)
-- `PageHeader` reusable component
+The complete end-to-end MVP workflow runs entirely in the browser using sessionStorage. No backend or database yet.
 
-### ✅ Issue #3 — Dashboard shell
-- `(app)` route group layout — persistent top nav wraps all app routes, landing page excluded
-- `Nav` component — sticky header with "Projects" active-state highlighting via `usePathname`
-- `StepNav` component — per-project workflow step strip, highlights current step
-- All app pages moved into `src/app/(app)/` (URLs unchanged)
-- `docs/architecture.md` written
-- `README.md` replaced with real project docs
-- `CHANGELOG.md` created
+### Data pipeline (`src/lib/`)
 
-### Agent operating system (complete)
-The entire agent build infrastructure was created this session:
-- `AGENTS.md` — 10 agent roles with responsibilities, file ownership, handoff formats
-- `CLAUDE.md` — orchestrator instructions
-- `docs/roadmap.md` — all 23 MVP issues with statuses and dependency graph
-- `docs/agent-operating-system.md` — the 11-step build loop manual
-- `docs/agent-prompts.md` — ready-to-run prompts for every agent role
-- `docs/security-privacy.md` — hard rules with HARD BLOCK severity labels
-- `.github/ISSUE_TEMPLATE/agent-task.yml` — structured issue form
-- `.github/ISSUE_TEMPLATE/bug.yml` — bug report form
-- `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist
-- `.github/workflows/ci.yml` — updated with job name + `.next/` guard
-- `.claude/skills/implement-issue/SKILL.md` — `/implement-issue` skill
-- `.claude/skills/review-pr/SKILL.md` — `/review-pr` skill
-- `.claude/skills/qa-workflow/SKILL.md` — `/qa-workflow` skill
+| Module | Exported function | Issue |
+|---|---|---|
+| `src/lib/validate/` | `validateFileMetadata`, `validateCSVContent` | #5 |
+| `src/lib/parse/` | `parseCSV` | #6 |
+| `src/lib/infer/` | `inferColumnTypes` | #8 |
+| `src/lib/schema/` | `validateSchema` | #10 |
+| `src/lib/clean/` | `cleanDataset` | #11 |
+| `src/lib/analysis/` | `analyzeQuantitative` | #13 |
+| `src/lib/text/` | `analyzeText` | #14 |
+| `src/lib/charts/` | `buildCharts` | #15 |
+| `src/lib/insights/` | `generateInsights` | #17 |
+| `src/lib/export/` | `serializeCSV` | #18 |
+
+**186 unit tests, all passing.** Every public data pipeline function has tests.
+
+### UI (`src/app/(app)/projects/[projectId]/`)
+
+| Route | Component | What it does |
+|---|---|---|
+| `upload/` | `UploadSection` | Drag-and-drop CSV; validates; parses via `parseCSV`; stores `ParseResult` in `sessionStorage` |
+| `preview/` | `PreviewTable` | Reads `ParseResult` from sessionStorage; shows first 25 rows |
+| `mapping/` | `MappingSection` | Infers column types; lets user override; on "Next: Analyze" runs full pipeline (clean → analyze → insights → charts) and stores results in sessionStorage |
+| `analysis/` | `AnalysisDashboard` | Reads sessionStorage; renders cleaning summary table, insight cards, chart blocks |
+| `report/` | `ReportSection` | Download cleaned CSV; print-to-PDF via `window.print()` |
+
+### sessionStorage keys (per project)
+
+| Key | Value |
+|---|---|
+| `preview:${projectId}` | `ParseResult` — raw parsed dataset |
+| `mapping:${projectId}` | `ColumnMapping[]` — user-confirmed column types |
+| `cleaning:${projectId}` | `CleaningSummary` — counts only, no row data |
+| `analysis:${projectId}` | `{ quant, text, insights, charts }` — full analysis payload |
+
+### Shared types (`src/types/index.ts`)
+
+`Project`, `ProjectStatus`, `ColumnType`, `ColumnMapping`, `Dataset`, `ParseResult`, `ValidationCode/Issue/Result`, `SchemaIssueCode/SchemaIssue/SchemaValidationResult`, `ColumnCleaningStats`, `CleaningSummary`, `CleaningResult`
 
 ---
 
@@ -55,81 +63,84 @@ The entire agent build infrastructure was created this session:
 ```
 src/
   app/
-    layout.tsx                   Root layout — html, body, Geist fonts
-    page.tsx                     Landing page (/) — outside app shell
+    layout.tsx                   Root layout
+    page.tsx                     Landing page (/) — hero, how-it-works, CTAs
     (app)/
-      layout.tsx                 App shell — Nav + main slot
-      dashboard/page.tsx         /dashboard — project list (empty state)
+      layout.tsx                 App shell — persistent Nav
+      dashboard/page.tsx         /dashboard — project list placeholder
       projects/
-        new/page.tsx             /projects/new — create project placeholder
+        new/page.tsx             /projects/new — hardcoded demo redirect
         [projectId]/
-          layout.tsx             Step layout — StepNav only
-          upload/page.tsx        Step 1 placeholder
-          preview/page.tsx       Step 2 placeholder
-          mapping/page.tsx       Step 3 placeholder
-          analysis/page.tsx      Step 4 placeholder
-          report/page.tsx        Step 5 placeholder
-  components/layout/
-    Nav.tsx                      Client — top nav, active state
-    StepNav.tsx                  Client — step strip, active step
-    PageHeader.tsx               Server — page title + back link
+          layout.tsx             StepNav only
+          upload/
+            page.tsx             Server wrapper
+            UploadSection.tsx    Client — file picker + pipeline trigger
+          preview/
+            page.tsx             Server wrapper
+            PreviewTable.tsx     Client — renders first 25 rows
+          mapping/
+            page.tsx             Server wrapper
+            MappingSection.tsx   Client — type overrides + full pipeline on Next
+          analysis/
+            page.tsx             Server wrapper
+            AnalysisDashboard.tsx Client — cleaning summary, insights, charts
+          report/
+            page.tsx             Server wrapper
+            ReportSection.tsx    Client — CSV download, print report
+  components/
+    layout/
+      Nav.tsx                    Sticky top nav, active state
+      StepNav.tsx                Per-project step strip
+      PageHeader.tsx             Page title component
+    upload/
+      DropZone.tsx               Drag-and-drop file input
   lib/
-    data/index.ts                Stub — data modules go here
-    smoke.test.ts                Vitest smoke test
-  types/
-    index.ts                     Domain types
+    validate/index.ts + validate.test.ts
+    parse/index.ts + parse.test.ts
+    infer/index.ts + infer.test.ts
+    schema/index.ts + schema.test.ts
+    clean/index.ts + clean.test.ts
+    analysis/index.ts + analysis.test.ts
+    text/index.ts + text.test.ts
+    charts/index.ts + charts.test.ts
+    insights/index.ts + insights.test.ts
+    export/index.ts + export.test.ts
+    data/index.ts                Stub
+    smoke.test.ts
+  types/index.ts
 
 docs/
   product-spec.md
-  roadmap.md                     23 issues, #1 and #3 done
+  roadmap.md                     Issues #1–19 ✅, #20–23 blocked
   architecture.md
   agent-operating-system.md
   agent-prompts.md
   security-privacy.md
-
-.claude/skills/
-  implement-issue/SKILL.md
-  review-pr/SKILL.md
-  qa-workflow/SKILL.md
-
-.github/
-  ISSUE_TEMPLATE/agent-task.yml
-  ISSUE_TEMPLATE/bug.yml
-  PULL_REQUEST_TEMPLATE.md
-  workflows/ci.yml
+  handoff.md                     ← this file
 ```
 
 ---
 
-## Git state — action required
+## Git state
 
-**Nothing has been committed since the initial `Add CI checks` commit.**
-All work from this session is untracked. Before starting the next session, commit everything:
+**Branch:** `agent-factory`
+**Remote:** pushed to `https://github.com/ryanjvalencia/survey-insight-app`
+**Main branch:** still at the original `Add CI checks` commit
 
-```bash
-git add .
-git commit -m "feat: base structure, dashboard shell, and agent operating system
-
-- Resolve nested project directory; promote src/ layout to root
-- Add typecheck, test, test:watch scripts; install Vitest
-- Add placeholder workflow pages for all routes
-- Add (app) route group with persistent Nav and StepNav
-- Add 10-agent operating system with prompts, skills, and docs
-- Add GitHub issue templates and PR template
-- Update CI workflow
-
-Closes #1, #3"
-```
+**Action required:**
+1. Open a PR from `agent-factory` → `main`
+2. Review and merge
+3. Once merged, configure Supabase (see below) to unblock #20–23
 
 ---
 
 ## CI status
 
-All four checks pass on the current working tree:
+All four checks pass on `agent-factory`:
 ```
 npm run lint      ✅
 npm run typecheck ✅
-npm test          ✅
+npm test          ✅  (186 tests across 11 test files)
 npm run build     ✅
 ```
 
@@ -147,40 +158,67 @@ Routes compiled:
 
 ---
 
-## Known issues / deferred items
+## What is blocked and why
 
-| Item | Severity | Notes |
+| # | Issue | Blocker |
 |---|---|---|
-| Empty `survey-insight-app/` ghost dir | Low | Windows file lock prevents `rm -rf`; invisible to Next.js and CI; delete manually by closing VS Code and running `Remove-Item -Recurse -Force survey-insight-app` in PowerShell |
-| No React component tests | Low | `@testing-library/react` + jsdom not yet installed; flagged as follow-up when first stateful component logic needs coverage |
-| `projects/new` does no real project creation | Expected | Hardcodes `/projects/demo/upload`; real creation requires Supabase (#20) |
-| Export buttons on report page are disabled | Expected | Stubs for issues #18 and #19 |
-| Nav shows project ID, not project name | Expected | Needs Supabase (#20) |
+| #20 | Supabase persistence | Needs Supabase project + credentials from human |
+| #21 | Authentication | Depends on #20 |
+| #22 | Security & privacy audit | Depends on #21 |
+| #23 | Deployment | Depends on #22 |
+
+**To unblock #20:** create a Supabase project and add to `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+Do **not** put `SUPABASE_SERVICE_ROLE_KEY` in a `NEXT_PUBLIC_` variable.
+
+The database schema to create (from `docs/product-spec.md`):
+```sql
+-- Projects
+create table projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null,
+  name text not null,
+  status text not null default 'created',
+  created_at timestamptz default now()
+);
+
+-- Datasets
+create table datasets (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references projects not null,
+  original_filename text,
+  row_count integer,
+  column_count integer,
+  created_at timestamptz default now()
+);
+
+-- Enable RLS on all tables
+alter table projects enable row level security;
+alter table datasets enable row level security;
+```
 
 ---
 
-## Roadmap — what's next
+## Known limitations (MVP)
 
-From [docs/roadmap.md](roadmap.md):
-
-| # | Title | Status | Unblocked? |
-|---|---|---|---|
-| 2 | Landing page | ⬜ | ✅ yes |
-| 4 | Upload page UI | ⬜ | ✅ yes (#3 done) |
-| 5 | CSV validation | ⬜ | ✅ yes |
-
-**#4 and #5 are independent and can run in parallel.** #4 is Frontend, #5 is Data Pipeline.
-#2 (Landing page) is small but lower leverage — the landing page already has a working placeholder.
-
-**Highest leverage next move:** Start #5 (CSV validation) + #4 (Upload page UI) together.
+| Item | Notes |
+|---|---|
+| sessionStorage only | All data is browser-tab ephemeral; closing the tab loses the session. Fixed by #20 (Supabase persistence). |
+| `projects/new` hardcodes `/projects/demo/upload` | Real project creation requires #20. |
+| No deduplication | Cleaning pipeline does not remove duplicate rows. Intentional for MVP scope. |
+| Date normalization uses `new Date()` | Local timezone can cause off-by-one on US-format dates. Known limitation. |
+| CSV export re-runs cleaning | Cleaned rows not stored separately — cleaning is re-computed on download. Fast enough for ≤50k rows. |
+| Word cloud is CSS font-size only | No visual cloud layout. Charts module outputs data; rendering is minimal Tailwind. |
+| Print PDF depends on browser | `window.print()` quality varies by browser. No dedicated PDF library. |
 
 ---
 
-## How to continue building
+## How to continue
 
-### Option A — Autonomous loop (one prompt)
-
-Open a new Claude Code session and paste:
+### Option A — Autonomous loop (paste into new chat)
 
 ```
 You are the Orchestrator for the Survey Insight agent build system.
@@ -202,38 +240,28 @@ Stop and escalate to me if:
 Begin now.
 ```
 
-### Option B — Targeted single issue
+This will block immediately on #20 and tell you what Supabase credentials are needed.
+
+### Option B — After Supabase is configured
 
 ```
-/implement-issue #5
-```
-
-or
-
-```
-/implement-issue #4
+/implement-issue #20
 ```
 
 ### Option C — Role-by-role
 
-See the individual agent prompts in [docs/agent-prompts.md](agent-prompts.md).
+See [docs/agent-prompts.md](agent-prompts.md) for per-role prompts.
 
 ---
 
-## Key decisions made this session
+## Key architectural decisions
 
 | Decision | Reason |
 |---|---|
-| Route group `(app)` instead of middleware-based layout | Cleaner separation — landing page gets no nav shell without special casing |
-| `StepNav` extracted as a client component | `[projectId]/layout.tsx` is a server component (needs to `await params`); `usePathname` requires client context; the two concerns are split cleanly |
-| Stale `.next/` cache must be cleared after file moves | Next.js 16 type-checks against `.next/types/validator.ts` which references file paths; moving files invalidates the cache |
-| Agent system in docs/, not src/ | Agent infrastructure is pure documentation — no runtime cost, no build impact |
-| No `@testing-library/react` yet | Would require human approval per guardrails; no stateful component logic exists yet that needs it |
-
----
-
-## Contacts / repo
-
-- Repo: `https://github.com/ryanjvalencia/survey-insight-app`
-- Branch: `main`
-- All work uncommitted (see Git state section above)
+| All pipeline runs client-side on "Next: Analyze" | No backend yet (Supabase in #20); avoids server-side file handling before auth exists |
+| sessionStorage keyed by `${type}:${projectId}` | Supports multiple projects in the same tab; predictable key scheme |
+| `useSyncExternalStore` for sessionStorage reads | Avoids `useEffect` + `setState` (blocked by `react-hooks/set-state-in-effect` lint rule); server snapshot returns `null` cleanly |
+| `inferColumnTypes` uses name hints first, value stats for confidence | Name is structural metadata (high signal); values might be sparse or misleading alone |
+| `cleanDataset` clamps NPS/rating rather than dropping bad rows | Dropping rows loses signal; clamping preserves the response with a bounded value |
+| No PDF library — `window.print()` for report | Avoids new npm dependency; browser print is good enough for MVP |
+| No AI API calls anywhere | All analysis is rule-based; AI API requires feature flag + sanitization (future issue) |

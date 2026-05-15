@@ -29,16 +29,16 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 | 7 | Data preview screen | ✅ done | #6 | Frontend | Medium |
 | 8 | Column type inference | ✅ done | #6 | Data Pipeline | Medium |
 | 9 | Column mapping screen | ✅ done | #7, #8 | Frontend | Medium |
-| 10 | Schema validation | ⬜ not-started | #6, #8, #9 | Data Pipeline | Small–Medium |
-| 11 | Data cleaning pipeline | ⬜ not-started | #6, #10 | Data Pipeline | Large |
-| 12 | Cleaning summary UI | ⬜ not-started | #11 | Frontend | Medium |
-| 13 | Quantitative analysis | ⬜ not-started | #11 | Data Pipeline | Large |
-| 14 | Text analysis | ⬜ not-started | #11 | Data Pipeline | Medium |
-| 15 | Chart transformations | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
-| 16 | Analysis dashboard | ⬜ not-started | #15, #3 | Frontend | Large |
-| 17 | Insight generation | ⬜ not-started | #13, #14 | Data Pipeline | Medium |
-| 18 | Cleaned CSV export | ⬜ not-started | #11, #16 | Data Pipeline | Small–Medium |
-| 19 | Report export | ⬜ not-started | #13, #14, #17, #18 | Data Pipeline | Large |
+| 10 | Schema validation | ✅ done | #6, #8, #9 | Data Pipeline | Small–Medium |
+| 11 | Data cleaning pipeline | ✅ done | #6, #10 | Data Pipeline | Large |
+| 12 | Cleaning summary UI | ✅ done | #11 | Frontend | Medium |
+| 13 | Quantitative analysis | ✅ done | #11 | Data Pipeline | Large |
+| 14 | Text analysis | ✅ done | #11 | Data Pipeline | Medium |
+| 15 | Chart transformations | ✅ done | #13, #14 | Data Pipeline | Medium |
+| 16 | Analysis dashboard | ✅ done | #15, #3 | Frontend | Large |
+| 17 | Insight generation | ✅ done | #13, #14 | Data Pipeline | Medium |
+| 18 | Cleaned CSV export | ✅ done | #11, #16 | Data Pipeline | Small–Medium |
+| 19 | Report export | ✅ done | #13, #14, #17, #18 | Data Pipeline | Large |
 | 20 | Supabase persistence | ⬜ not-started | #1, #11, #13 | Data Pipeline | Large |
 | 21 | Authentication | ⬜ not-started | #20 | Frontend + Data Pipeline | Medium |
 | 22 | Security and privacy audit | ⬜ not-started | #21, #5–#19 | Security/Privacy | Large |
@@ -81,13 +81,101 @@ Status values: `done` | `in-progress` | `not-started` | `blocked`
 ## Current sprint
 
 **Next unblocked issues (ready to start):**
-- #10 Schema validation (depends on #6 ✅, #8 ✅, #9 ✅) — Data Pipeline
+- #20 Supabase persistence — **BLOCKED: requires human to configure Supabase project and provide credentials**
 
-**Recommended start order:** #10 (Data Pipeline — all dependencies now done).
+**Action required by human:** Configure Supabase project (create project, run schema migrations, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`).
 
 ---
 
 ## Completed issues
+
+### ✅ #19 — Report export
+- `ReportSection` client component (`src/app/(app)/projects/[projectId]/report/ReportSection.tsx`)
+- Printable report sections: key insights list, quantitative summary (NPS, rating, numeric, category), open-text summary
+- `print:hidden` Tailwind class hides export buttons from printed output
+- "Print / Save PDF" uses `window.print()` — no PDF library dependency
+- "Download CSV" re-runs `cleanDataset` from stored sessionStorage data and triggers browser download via `Blob` + `URL.createObjectURL`
+- All four CI checks passing
+
+### ✅ #18 — Cleaned CSV export
+- `serializeCSV(dataset: Dataset): string` exported from `src/lib/export/index.ts`
+- RFC 4180 compliant: CRLF line endings, quotes values containing commas/quotes/newlines, escapes embedded quotes via `""`
+- 8 unit tests covering all quoting scenarios
+- All four CI checks passing
+
+### ✅ #16 — Analysis dashboard
+- `AnalysisDashboard` client component (`src/app/(app)/projects/[projectId]/analysis/AnalysisDashboard.tsx`)
+- `MappingSection` updated to run full pipeline on "Next: Analyze": `cleanDataset` → `analyzeQuantitative` + `analyzeText` → `generateInsights` + `buildCharts`; stores `cleaning:${projectId}` (summary only) and `analysis:${projectId}` (full payload) in sessionStorage
+- Cleaning summary section: table of per-column trimmed/nullified/clamped/normalized counts; omits clean columns
+- Insights section: cards with severity colour coding (emerald = positive, red = negative)
+- Charts section: NPS gauge with score + segment percentages; bar/histogram with inline bars; pie/category with frequency table; word cloud rendered with proportional font sizes
+- All four CI checks passing
+
+### ✅ #12 — Cleaning summary UI
+- Part of `AnalysisDashboard` — see #16 above for implementation details
+- Shows total changes count, per-column breakdown table (trimmed/nullified/clamped/normalized); nullified and clamped values highlighted amber
+- All four CI checks passing
+
+### ✅ #17 — Insight generation
+- `generateInsights(quant, text)` exported from `src/lib/insights/index.ts`
+- Rule-based, deterministic — no AI API calls
+- NPS: score severity (positive/neutral/negative), high-detractor alert (>40%), strong-promoter alert (>60%)
+- Rating: mean insight with severity based on threshold (≥4 positive, ≥2.5 neutral)
+- Numeric: mean insight; high-variability alert when stdDev > 50% of mean
+- Category: top-value insight with count and percentage
+- Text: sentiment insight (positive/negative/neutral classification) + top-words insight
+- Returns `InsightReport` with `Insight[]` and plain-English `summary` string
+- 18 unit tests across all column types and severity rules
+- All four CI checks passing
+
+### ✅ #15 — Chart transformations
+- `buildCharts(quant, text)` exported from `src/lib/charts/index.ts`
+- NPS → `nps_gauge`; rating → `bar` (sorted distribution); numeric → `histogram` (10 buckets); category → `pie` (top 10 + "Other"); open_text → `word_cloud_data` (normalized weights)
+- `ChartSpec` union type: `NPSGaugeChart | BarChart | HistogramChart | PieChart | WordCloudDataChart`
+- 13 unit tests covering all chart types, "Other" bucket collapsing, and min===max edge case
+- All four CI checks passing
+
+### ✅ #14 — Text analysis
+- `analyzeText(dataset, mappings)` exported from `src/lib/text/index.ts`
+- Analyses `open_text` columns only; skips all other types
+- Word frequency: tokenizes to lowercase, strips punctuation, removes stop words and words < 3 chars; returns sorted `WordFrequency[]` with count and percentage
+- `topWords`: top 20 by frequency
+- Response length stats: mean, median, min, max character lengths
+- Proxy sentiment: counts positive/negative/neutral responses based on word-list matching (no AI API); returns counts + percentages
+- 17 unit tests covering column selection, word counting, stop word filtering, sentiment classification, multi-column datasets
+- All four CI checks passing
+
+### ✅ #13 — Quantitative analysis
+- `analyzeQuantitative(dataset, mappings)` exported from `src/lib/analysis/index.ts`
+- NPS: score, promoter/passive/detractor counts and percentages, mean
+- Rating: mean, median, min, max, value distribution
+- Numeric: mean, median, std deviation, min, max
+- Category: frequency table sorted by count, unique count
+- Skips empty values and non-numeric strings; skips id, ignore, open_text, date, unknown columns
+- 17 unit tests covering all column types and edge cases
+- All four CI checks passing
+
+### ✅ #11 — Data cleaning pipeline
+- `cleanDataset(dataset, mappings)` exported from `src/lib/clean/index.ts`
+- NPS: non-integer / non-numeric → nullify; out of [0,10] → clamp
+- Rating: non-integer or < 1 → nullify/clamp to 1
+- Numeric: strips `$£€,` formatting; non-finite → nullify
+- Date: parses and normalizes to `YYYY-MM-DD`; unparseable → nullify
+- All types: leading/trailing whitespace trimmed
+- `ignore` and `id` and `open_text` columns: trim only
+- Returns `CleaningResult` with cleaned `Dataset` + `CleaningSummary` (per-column counts of trimmed/nullified/clamped/normalized; never logs cell values)
+- `ColumnCleaningStats`, `CleaningSummary`, `CleaningResult` types added to `src/types/index.ts`
+- 26 unit tests covering all column types, summary accuracy, and dataset integrity
+- All four CI checks passing
+
+### ✅ #10 — Schema validation
+- `validateSchema(dataset, mappings)` exported from `src/lib/schema/index.ts`
+- Checks for: no analysable columns (error), empty columns (error), low fill rate <50% (warning), NPS out of integer 0–10 range (warning), invalid rating/numeric/date values (warning)
+- `ignore` and `id` columns are skipped entirely
+- `SchemaIssueCode`, `SchemaIssue`, `SchemaValidationResult` types added to `src/types/index.ts`
+- Messages include counts and percentages only — no cell values
+- 22 unit tests across all column types, structural errors, and edge cases
+- All four CI checks passing
 
 ### ✅ #9 — Column mapping screen
 - `MappingSection` client component (`src/app/(app)/projects/[projectId]/mapping/MappingSection.tsx`)
