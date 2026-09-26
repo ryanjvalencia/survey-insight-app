@@ -54,12 +54,12 @@ export default function AnalysisDashboard({ projectId, analysis }: Props) {
 
   return (
     <div className="space-y-10">
+      <KpiRow analysis={analysis} />
       <InsightSpotlight
         insights={insightReport.insights}
         summary={insightReport.summary}
         hasTextInsights={analysis.text.columns.length > 0}
       />
-      <KpiRow analysis={analysis} />
       <ChartsSection analysis={analysis} />
       <CleaningSection summary={analysis.cleaning} />
 
