@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `scripts/generate-test-csv.mjs`: generates synthetic, deliberately messy survey CSVs (10k, 50k, 50,001 rows by default, or any row count) into gitignored `test-data/`.
 - Analysis results are saved to the account (`analysis_results` table, `supabase/migrations/20260926010000_analysis_results.sql`), so reopening a project from the dashboard shows its analysis and report after the tab is closed. Re-analyzing replaces the saved result.
 - `src/lib/results`: `buildStoredAnalysis` / `parseStoredAnalysis` — versioned payload, server-side validation, 512 KB limit. `src/lib/db/analysis.ts`: `saveAnalysisResult`, `getAnalysisResult`.
 - Email + password authentication with `@supabase/ssr` 0.12.7 — the official Supabase package for cookie-based sessions in Next.js server code. `/login` and `/signup` pages, sign-out in the nav, `src/proxy.ts` protecting `/dashboard` and `/projects/**`.
@@ -43,6 +44,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` — replaced Next.js boilerplate with project-specific setup instructions
 
 ### Fixed
+- Upload now enforces the row limit and empty/header checks using the parsed row count (`validateParsedDataset`); previously `validateCSVContent` existed but was never called, so a 50,001-row file failed later with "Invalid upload details." Line-based counting also over-counted quoted multi-line fields.
+- Upload shows a clear message when a file is too large to keep in the browser tab (sessionStorage quota) instead of "Failed to read the file".
 - Next.js upgraded 16.2.6 → 16.3.6: Turbopack dev server on Windows spawned unbounded PostCSS workers (~2,000 processes, ~18 GB RAM), freezing the machine.
 - Upload no longer reports a database failure as "Failed to read the file".
 - Dashboard shows an error instead of an empty project list when projects fail to load.

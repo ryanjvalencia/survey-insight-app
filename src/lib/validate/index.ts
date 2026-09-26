@@ -1,7 +1,7 @@
-import type { ValidationIssue, ValidationResult } from "@/types";
+import type { Dataset, ValidationIssue, ValidationResult } from "@/types";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-const MAX_ROWS = 50_000;
+export const MAX_ROWS = 50_000;
 
 const ACCEPTED_MIME_TYPES = new Set([
   "text/csv",
@@ -164,4 +164,47 @@ function splitCSVRow(line: string): string[] {
   }
   cols.push(current);
   return cols;
+}
+
+/**
+ * Checks a parsed dataset against the upload limits. Unlike
+ * validateCSVContent, which counts text lines, this uses the parser's row
+ * count, so quoted fields containing line breaks are counted correctly.
+ * Messages contain counts only, never cell values.
+ */
+export function validateParsedDataset(dataset: Dataset): ValidationResult {
+  const issues: ValidationIssue[] = [];
+  const columnCount = dataset.headers.length;
+
+  if (columnCount === 0 || dataset.headers.every((h) => h.trim() === "")) {
+    issues.push({
+      code: columnCount === 0 && dataset.rowCount === 0 ? "EMPTY_FILE" : "NO_HEADERS",
+      message:
+        columnCount === 0 && dataset.rowCount === 0
+          ? "The file contains no content."
+          : "The first row does not contain column headers.",
+      severity: "error",
+    });
+  } else if (dataset.rowCount === 0) {
+    issues.push({
+      code: "NO_DATA_ROWS",
+      message: "The file contains headers but no data rows.",
+      severity: "error",
+    });
+  }
+
+  if (dataset.rowCount > MAX_ROWS) {
+    issues.push({
+      code: "EXCEEDS_ROW_LIMIT",
+      message: `This file has ${dataset.rowCount.toLocaleString("en-US")} data rows. The limit is ${MAX_ROWS.toLocaleString("en-US")} — split the file and upload each part as its own project.`,
+      severity: "error",
+    });
+  }
+
+  return {
+    valid: issues.every((i) => i.severity !== "error"),
+    issues,
+    rowCount: dataset.rowCount,
+    columnCount,
+  };
 }

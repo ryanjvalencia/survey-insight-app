@@ -168,6 +168,8 @@ alter table analysis_results enable row level security;
 
 ## Known limitations
 
+- **Browser storage caps real file size.** Raw rows are kept in `sessionStorage` (~5M characters per site). The parsed JSON is ~2.3× the CSV size, so files above roughly 15–20k rows (≈2 MB CSV) can't be stored even though the stated limit is 10 MB / 50,000 rows. Upload shows a clear error when this happens.
+- Type inference doesn't recognize currency-formatted numbers (`$1,234`) as numeric; the user must set the column to Numeric manually (cleaning already strips the formatting).
 - No duplicate-row removal in cleaning.
 - Date normalization uses `new Date()`; US-format dates can be off by one in some timezones.
 - Word cloud is CSS font-size only; charts are plain Tailwind (no chart library).

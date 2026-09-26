@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DropZone, { type SelectedFile } from "@/components/upload/DropZone";
 import { parseCSV } from "@/lib/parse";
+import { validateParsedDataset } from "@/lib/validate";
 import type { ParseResult } from "@/types";
 import { recordUpload } from "../actions";
 
@@ -25,9 +26,27 @@ export default function UploadSection({ projectId }: UploadSectionProps) {
     try {
       const text = await file.file.text();
       result = parseCSV(text, file.name);
-      sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
     } catch {
       setError("Failed to read the file. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const validation = validateParsedDataset(result.dataset);
+    const blocking = validation.issues.find((i) => i.severity === "error");
+    if (blocking) {
+      setError(blocking.message);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
+    } catch {
+      // Browsers cap sessionStorage (often ~5–10 MB); very large files can exceed it.
+      setError(
+        "This file is too large to keep in your browser tab. Try a smaller file or remove unused columns.",
+      );
       setLoading(false);
       return;
     }

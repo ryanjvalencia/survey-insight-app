@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { validateFileMetadata, validateCSVContent } from "./index";
+import {
+  MAX_ROWS,
+  validateCSVContent,
+  validateFileMetadata,
+  validateParsedDataset,
+} from "./index";
+import { parseCSV } from "@/lib/parse";
 
 // ---------------------------------------------------------------------------
 // validateFileMetadata
@@ -223,5 +229,64 @@ describe("validateCSVContent", () => {
       expect(issue.message).not.toMatch(/Alice/);
       expect(issue.message).not.toMatch(/extra/);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateParsedDataset
+// ---------------------------------------------------------------------------
+
+function csvWithRows(n: number, row = "1,ok"): string {
+  return ["score,note", ...Array.from({ length: n }, () => row)].join("\n");
+}
+
+describe("validateParsedDataset", () => {
+  it("accepts a dataset with headers and at least one row", () => {
+    const { dataset } = parseCSV(csvWithRows(3), "f.csv");
+    expect(validateParsedDataset(dataset)).toMatchObject({
+      valid: true,
+      issues: [],
+      rowCount: 3,
+      columnCount: 2,
+    });
+  });
+
+  it(`accepts exactly ${MAX_ROWS.toLocaleString("en-US")} rows`, () => {
+    const { dataset } = parseCSV(csvWithRows(MAX_ROWS), "f.csv");
+    expect(validateParsedDataset(dataset).valid).toBe(true);
+  });
+
+  it("rejects one row over the limit with a count-only message", () => {
+    const { dataset } = parseCSV(csvWithRows(MAX_ROWS + 1, "1,private-note"), "f.csv");
+    const result = validateParsedDataset(dataset);
+    expect(result.valid).toBe(false);
+    expect(result.issues[0].code).toBe("EXCEEDS_ROW_LIMIT");
+    expect(result.issues[0].message).toContain("50,001");
+    expect(result.issues[0].message).not.toContain("private-note");
+  });
+
+  it("counts quoted multi-line fields as one row each", () => {
+    const multiline = '1,"line one\nline two"';
+    const { dataset } = parseCSV(csvWithRows(MAX_ROWS, multiline), "f.csv");
+    // Line-based counting would see 100,000 data lines here.
+    expect(validateCSVContent(csvWithRows(MAX_ROWS, multiline)).valid).toBe(false);
+    expect(validateParsedDataset(dataset).valid).toBe(true);
+  });
+
+  it("rejects a header-only file", () => {
+    const { dataset } = parseCSV("score,note\n", "f.csv");
+    expect(validateParsedDataset(dataset).issues.map((i) => i.code)).toEqual(["NO_DATA_ROWS"]);
+  });
+
+  it("rejects an empty file", () => {
+    const { dataset } = parseCSV("", "f.csv");
+    expect(validateParsedDataset(dataset).issues.map((i) => i.code)).toEqual(["EMPTY_FILE"]);
+  });
+
+  it("rejects blank headers", () => {
+    expect(
+      validateParsedDataset({ headers: [" ", ""], rows: [], rowCount: 2, parseWarnings: [] })
+        .issues.map((i) => i.code),
+    ).toEqual(["NO_HEADERS"]);
   });
 });
