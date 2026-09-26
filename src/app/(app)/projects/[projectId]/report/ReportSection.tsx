@@ -1,8 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import type { ParseResult, ColumnMapping } from "@/types";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 import type { InsightReport } from "@/lib/insights";
@@ -10,41 +8,9 @@ import type { StoredAnalysis } from "@/lib/results";
 import { formatNpsScore } from "@/lib/charts";
 import { cleanDataset } from "@/lib/clean";
 import { serializeCSV } from "@/lib/export";
-
-// ── sessionStorage helpers ────────────────────────────────────────────────────
-// Raw rows and mappings live only in this browser tab; they're needed to
-// rebuild the cleaned CSV and are never sent to the server.
-
-const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
-  () => () => {};
-
-const previewCache = new Map<
-  string,
-  { raw: string | null; result: ParseResult | null }
->();
-const mappingCache = new Map<
-  string,
-  { raw: string | null; result: ColumnMapping[] | null }
->();
-
-function readStored<T>(
-  key: string,
-  cache: Map<string, { raw: string | null; result: T | null }>,
-): T | null {
-  const raw = sessionStorage.getItem(key);
-  const cached = cache.get(key);
-  if (cached && cached.raw === raw) return cached.result;
-  let result: T | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as T;
-    } catch {
-      result = null;
-    }
-  }
-  cache.set(key, { raw, result });
-  return result;
-}
+import { inferColumnTypes } from "@/lib/infer";
+import { applyColumnTypes } from "@/lib/localdata";
+import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -54,27 +20,23 @@ interface Props {
 }
 
 export default function ReportSection({ projectId, analysis }: Props) {
-  const preview = useSyncExternalStore(
-    subscribe,
-    () => readStored<ParseResult>(`preview:${projectId}`, previewCache),
-    () => null,
-  );
-  const mappings = useSyncExternalStore(
-    subscribe,
-    () => readStored<ColumnMapping[]>(`mapping:${projectId}`, mappingCache),
-    () => null,
-  );
-  const canDownloadCSV = Boolean(preview && mappings);
+  // Raw rows and column choices live only on this device (IndexedDB); the
+  // cleaned CSV is rebuilt here and never sent to the server.
+  const local = useLocalProjectData(projectId);
+  const upload = local.status === "ready" ? local.upload : null;
+  const canDownloadCSV = upload !== null;
 
   function handleDownloadCSV() {
-    if (!preview || !mappings) return;
-    const { dataset } = cleanDataset(preview.dataset, mappings);
+    if (!upload) return;
+    const columnTypes = local.status === "ready" ? local.columnTypes : null;
+    const mappings = applyColumnTypes(inferColumnTypes(upload.dataset), columnTypes);
+    const { dataset } = cleanDataset(upload.dataset, mappings);
     const csv = serializeCSV(dataset);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `cleaned_${preview.originalFilename ?? "export.csv"}`;
+    a.download = `cleaned_${upload.originalFilename ?? "export.csv"}`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -111,7 +73,9 @@ export default function ReportSection({ projectId, analysis }: Props) {
             <p className="text-xs text-zinc-400 mt-0.5">
               {canDownloadCSV
                 ? `${analysis.cleaning.totalRows.toLocaleString()} rows · ${analysis.cleaning.totalChanges.toLocaleString()} change(s) applied`
-                : "Re-upload your file in this tab to download it. Raw data is never stored on our servers."}
+                : local.status === "loading"
+                  ? "Checking this device for your file…"
+                  : "Re-upload your file on this device to download it. Raw data is never stored on our servers."}
             </p>
           </div>
           <button

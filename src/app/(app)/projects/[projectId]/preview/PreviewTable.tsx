@@ -1,56 +1,24 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import type { ParseResult } from "@/types";
+import LocalDataNotice from "@/components/localdata/LocalDataNotice";
+import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
 
 const MAX_PREVIEW_ROWS = 25;
-
-// sessionStorage doesn't emit same-tab events, so subscribe is a no-op.
-const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
-  () => () => {};
-
-// Module-level cache prevents JSON.parse on every render.
-// Keyed by projectId. Cleared when the stored raw string changes.
-const snapshotCache = new Map<string, { raw: string | null; result: ParseResult | null }>();
-
-function readSnapshot(projectId: string): ParseResult | null {
-  const raw = sessionStorage.getItem(`preview:${projectId}`);
-  const cached = snapshotCache.get(projectId);
-  if (cached && cached.raw === raw) return cached.result;
-
-  let result: ParseResult | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as ParseResult;
-    } catch {
-      result = null;
-    }
-  }
-  snapshotCache.set(projectId, { raw, result });
-  return result;
-}
 
 interface PreviewTableProps {
   projectId: string;
 }
 
 export default function PreviewTable({ projectId }: PreviewTableProps) {
-  const result = useSyncExternalStore(
-    subscribe,
-    () => readSnapshot(projectId),
-    () => null,
-  );
+  const local = useLocalProjectData(projectId);
 
-  // result is null during SSR (server snapshot returns null).
-  // After hydration the client snapshot runs and returns the stored data.
+  if (local.status !== "ready") {
+    return <LocalDataNotice kind={local.status} projectId={projectId} />;
+  }
+  const result: ParseResult | null = local.upload;
   if (result === null || result.dataset.headers.length === 0) {
-    return (
-      <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center">
-        <p className="text-sm text-zinc-500">
-          No data loaded yet — upload a file first.
-        </p>
-      </div>
-    );
+    return <LocalDataNotice kind="missing" projectId={projectId} />;
   }
 
   const { dataset } = result;

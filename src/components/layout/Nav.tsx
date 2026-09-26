@@ -1,8 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/actions";
+import { clearAllLocalData, purgeExpired } from "@/lib/localdata";
+import { getBrowserStore } from "@/lib/localdata/indexeddb";
+
+/** Clears raw survey data from this device before ending the session. */
+async function signOut() {
+  await clearAllLocalData(getBrowserStore()).catch(() => null);
+  await logout();
+}
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Projects" },
@@ -10,6 +19,11 @@ const NAV_LINKS = [
 
 export default function Nav({ email }: { email: string | null }) {
   const pathname = usePathname();
+
+  // Drop uploaded files older than the local retention window.
+  useEffect(() => {
+    purgeExpired(getBrowserStore()).catch(() => null);
+  }, []);
 
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-100 bg-white">
@@ -49,7 +63,7 @@ export default function Nav({ email }: { email: string | null }) {
               </li>
             )}
             <li>
-              <form action={logout}>
+              <form action={signOut}>
                 <button
                   type="submit"
                   className="px-3 py-1.5 rounded-md text-sm text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"

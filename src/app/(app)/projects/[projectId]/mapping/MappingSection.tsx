@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ParseResult, ColumnMapping, ColumnType } from "@/types";
@@ -10,33 +10,17 @@ import { analyzeQuantitative } from "@/lib/analysis";
 import { analyzeText } from "@/lib/text";
 import { buildCharts } from "@/lib/charts";
 import { generateInsights } from "@/lib/insights";
+import {
+  applyColumnTypes,
+  saveColumnTypes,
+  toColumnTypes,
+  type ColumnTypes,
+} from "@/lib/localdata";
+import { getBrowserStore } from "@/lib/localdata/indexeddb";
 import { buildStoredAnalysis } from "@/lib/results";
+import LocalDataNotice from "@/components/localdata/LocalDataNotice";
+import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
 import { saveAnalysis } from "../actions";
-
-const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
-  () => () => {};
-
-const previewCache = new Map<
-  string,
-  { raw: string | null; result: ParseResult | null }
->();
-
-function readPreview(projectId: string): ParseResult | null {
-  const raw = sessionStorage.getItem(`preview:${projectId}`);
-  const cached = previewCache.get(projectId);
-  if (cached && cached.raw === raw) return cached.result;
-
-  let result: ParseResult | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as ParseResult;
-    } catch {
-      result = null;
-    }
-  }
-  previewCache.set(projectId, { raw, result });
-  return result;
-}
 
 const SAMPLE_COUNT = 3;
 const MAX_SAMPLE_LEN = 30;
@@ -111,46 +95,67 @@ interface MappingSectionProps {
 }
 
 export default function MappingSection({ projectId }: MappingSectionProps) {
+  const local = useLocalProjectData(projectId);
+
+  if (local.status !== "ready") {
+    return <LocalDataNotice kind={local.status} projectId={projectId} />;
+  }
+  if (!local.upload || local.upload.dataset.headers.length === 0) {
+    return <LocalDataNotice kind="missing" projectId={projectId} />;
+  }
+  return (
+    <MappingEditor
+      projectId={projectId}
+      upload={local.upload}
+      savedTypes={local.columnTypes}
+    />
+  );
+}
+
+function MappingEditor({
+  projectId,
+  upload,
+  savedTypes,
+}: {
+  projectId: string;
+  upload: ParseResult;
+  savedTypes: ColumnTypes | null;
+}) {
   const router = useRouter();
-
-  const result = useSyncExternalStore(
-    subscribe,
-    () => readPreview(projectId),
-    () => null,
-  );
-
-  const inferredMappings = useMemo(
-    () => (result ? inferColumnTypes(result.dataset) : null),
-    [result],
-  );
-
-  const [overrides, setOverrides] = useState<Map<string, ColumnType>>(
-    new Map(),
+  // Inference runs once per mount; saved choices (from earlier visits to this
+  // step) are layered on top so they survive navigation and reloads.
+  const [mappings, setMappings] = useState<ColumnMapping[]>(() =>
+    applyColumnTypes(inferColumnTypes(upload.dataset), savedTypes),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function handleTypeChange(columnName: string, newType: ColumnType) {
-    setOverrides((prev) => new Map(prev).set(columnName, newType));
+    const next = mappings.map((m) =>
+      m.name === columnName ? { ...m, type: newType } : m,
+    );
+    setMappings(next);
+    saveColumnTypes(getBrowserStore(), projectId, toColumnTypes(next)).catch(() =>
+      setError("Couldn't save your column choices on this device."),
+    );
   }
 
   async function handleNext() {
-    if (!inferredMappings || !result) return;
-    const finalMappings: ColumnMapping[] = inferredMappings.map((m) => ({
-      ...m,
-      type: overrides.get(m.name) ?? m.type,
-    }));
-    const cleaningResult = cleanDataset(result.dataset, finalMappings);
-    const quant = analyzeQuantitative(cleaningResult.dataset, finalMappings);
-    const text = analyzeText(cleaningResult.dataset, finalMappings);
-    const insights = generateInsights(quant, text);
-    const charts = buildCharts(quant, text);
-    // Mappings stay in the tab: the report's cleaned-CSV download re-runs
-    // cleaning on the raw rows, which are never sent to the server.
-    sessionStorage.setItem(`mapping:${projectId}`, JSON.stringify(finalMappings));
-
     setSaving(true);
     setError(null);
+
+    const cleaningResult = cleanDataset(upload.dataset, mappings);
+    const quant = analyzeQuantitative(cleaningResult.dataset, mappings);
+    const text = analyzeText(cleaningResult.dataset, mappings);
+    const insights = generateInsights(quant, text);
+    const charts = buildCharts(quant, text);
+
+    // Column choices stay on this device; the report's cleaned-CSV export
+    // re-runs cleaning on the raw rows, which never leave the browser.
+    await saveColumnTypes(getBrowserStore(), projectId, toColumnTypes(mappings)).catch(
+      () => null,
+    );
+
     const payload = buildStoredAnalysis({
       cleaning: cleaningResult.summary,
       quant,
@@ -168,26 +173,6 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
       return;
     }
     router.push(`/projects/${projectId}/analysis`);
-  }
-
-  if (!result || !inferredMappings) {
-    return (
-      <div className="space-y-6">
-        <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center">
-          <p className="text-sm text-zinc-500">
-            No data loaded yet — upload a file first.
-          </p>
-        </div>
-        <div className="flex justify-start">
-          <Link
-            href={`/projects/${projectId}/preview`}
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-          >
-            ← Back to preview
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -211,10 +196,10 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
             </tr>
           </thead>
           <tbody>
-            {inferredMappings.map((m, i) => {
-              const samples = getSamples(result.dataset, m.name);
+            {mappings.map((m, i) => {
+              const samples = getSamples(upload.dataset, m.name);
               const badge = confidenceBadge(m.confidence);
-              const effectiveType = overrides.get(m.name) ?? m.type;
+              const effectiveType = m.type;
               const userChanged = effectiveType !== m.inferredType;
               return (
                 <tr

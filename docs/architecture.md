@@ -96,16 +96,19 @@ Supabase email + password auth via `@supabase/ssr` (session stored in cookies so
 
 ## Persistence pattern
 
-**Raw survey data:** browser sessionStorage only — never sent to the server. The whole pipeline (clean → analyze → insights → charts) runs client-side when the user clicks "Next: Analyze" on the mapping step; only the aggregated results are then saved.
+**Raw survey data:** stays on the user's device in IndexedDB (`src/lib/localdata`) — never sent to the server. The whole pipeline (clean → analyze → insights → charts) runs client-side when the user clicks "Next: Analyze" on the mapping step; only the aggregated results are then saved.
 
-**sessionStorage keys (per project):**
+**Local storage (IndexedDB database `survey-insight`, object store `project-data`):**
 
 | Key | Value |
 |---|---|
-| `preview:${projectId}` | `ParseResult` — raw parsed dataset |
-| `mapping:${projectId}` | `ColumnMapping[]` — user-confirmed column types |
+| `upload:${projectId}` | `{ savedAt, value: ParseResult }` — raw parsed dataset |
+| `columns:${projectId}` | `{ savedAt, value: Record<column, ColumnType> }` — the user's column type choices, saved on every change |
 
-Components read these via `useSyncExternalStore` (hydration-safe; avoids setState-in-effect lint errors). Closing the tab loses them, so preview, mapping, and the report's cleaned-CSV download need the file re-uploaded. The analysis and report pages do not — they load saved results.
+- Logic lives in `src/lib/localdata/index.ts` against a small `LocalStore` interface; `indexeddb.ts` is the browser implementation and `memory.ts` the test implementation.
+- Client components read it with `useLocalProjectData(projectId)` (`src/components/localdata/`), which returns `loading | error | ready`.
+- Privacy limits, since IndexedDB outlives the tab: entries expire after 7 days (`LOCAL_RETENTION_MS`, purged on read and on every app load by `Nav`), and signing out clears everything before the session ends. Re-uploading a file resets that project's column choices.
+- IndexedDB quota is a share of free disk space (hundreds of MB+), so the 10 MB / 50,000-row limit is achievable; a 50k-row file is ~13 MB once parsed. Private browsing or strict privacy settings can block IndexedDB — the UI shows a specific error.
 
 **Metadata persisted to Supabase:**
 - `projects` table — project name, status (`created` → `uploaded` → `analyzed`), timestamps
@@ -168,7 +171,6 @@ alter table analysis_results enable row level security;
 
 ## Known limitations
 
-- **Browser storage caps real file size.** Raw rows are kept in `sessionStorage` (~5M characters per site). The parsed JSON is ~2.3× the CSV size, so files above roughly 15–20k rows (≈2 MB CSV) can't be stored even though the stated limit is 10 MB / 50,000 rows. Upload shows a clear error when this happens.
 - Type inference doesn't recognize currency-formatted numbers (`$1,234`) as numeric; the user must set the column to Numeric manually (cleaning already strips the formatting).
 - No duplicate-row removal in cleaning.
 - Date normalization uses `new Date()`; US-format dates can be off by one in some timezones.

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import DropZone, { type SelectedFile } from "@/components/upload/DropZone";
 import { parseCSV } from "@/lib/parse";
 import { validateParsedDataset } from "@/lib/validate";
+import { saveUpload } from "@/lib/localdata";
+import { getBrowserStore } from "@/lib/localdata/indexeddb";
 import type { ParseResult } from "@/types";
 import { recordUpload } from "../actions";
 
@@ -41,17 +43,17 @@ export default function UploadSection({ projectId }: UploadSectionProps) {
     }
 
     try {
-      sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
+      // Raw rows stay on this device (IndexedDB); only counts go to the server.
+      await saveUpload(getBrowserStore(), projectId, result);
     } catch {
-      // Browsers cap sessionStorage (often ~5–10 MB); very large files can exceed it.
       setError(
-        "This file is too large to keep in your browser tab. Try a smaller file or remove unused columns.",
+        "Couldn't store the file in this browser. Private browsing, low disk space, or strict privacy settings can block this.",
       );
       setLoading(false);
       return;
     }
 
-    // Persist metadata only — raw rows stay in sessionStorage, never sent to DB
+    // Persist metadata only — raw rows never leave the browser
     const saved = await recordUpload({
       projectId,
       originalFilename: result.originalFilename,

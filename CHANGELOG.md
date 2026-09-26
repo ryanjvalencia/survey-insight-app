@@ -44,8 +44,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` — replaced Next.js boilerplate with project-specific setup instructions
 
 ### Fixed
+- Column type choices on the mapping step are saved on every change and restored when returning to the step (previously lost when navigating between steps).
+- Files up to the advertised 10 MB / 50,000 rows now work: raw rows moved from `sessionStorage` (~5M character cap, which a ~15–20k-row file already exceeded) to IndexedDB.
+- NPS is shown with its −100 to +100 scale, a sign (+17.6), and the average 0–10 answer; the bare number read as out of range. The calculation itself was correct.
 - Upload now enforces the row limit and empty/header checks using the parsed row count (`validateParsedDataset`); previously `validateCSVContent` existed but was never called, so a 50,001-row file failed later with "Invalid upload details." Line-based counting also over-counted quoted multi-line fields.
-- Upload shows a clear message when a file is too large to keep in the browser tab (sessionStorage quota) instead of "Failed to read the file".
+- Upload shows a specific message when the browser blocks local storage instead of "Failed to read the file".
 - Next.js upgraded 16.2.6 → 16.3.6: Turbopack dev server on Windows spawned unbounded PostCSS workers (~2,000 processes, ~18 GB RAM), freezing the machine.
 - Upload no longer reports a database failure as "Failed to read the file".
 - Dashboard shows an error instead of an empty project list when projects fail to load.
@@ -54,6 +57,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Multi-agent orchestrator scaffolding (`AGENTS.md`, agent operating-system/prompt docs, issue generator script, `/implement-issue` and `/review-pr` skills, agent-task issue template, `src/lib/data` stub)
 
 ### Security
+- Raw uploaded rows stay on the device in IndexedDB, expire after 7 days, and are cleared on sign out.
 - Data minimization for stored analysis: the full per-word vocabulary from open-text answers is dropped (only the displayed top 20 words are kept) and category frequency tables are capped at 20 values, enforced server-side. RLS on `analysis_results` follows parent-project ownership.
 - Per-user data ownership: `projects.user_id` defaults to `auth.uid()` and is required; permissive RLS replaced with owner-only policies on `projects` and `datasets` (`supabase/migrations/20260926000000_user_scoped_rls.sql`). The migration deletes pre-auth ownerless projects.
 - All database access moved server-side (Server Components / Server Actions); the browser no longer queries Supabase. Server Actions re-validate upload metadata (`parseDatasetMeta`) and project ids (`isUuid`).

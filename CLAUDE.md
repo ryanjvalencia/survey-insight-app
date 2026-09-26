@@ -39,7 +39,7 @@ CI (`.github/workflows/ci.yml`) runs the same four on every PR and on push to `m
 
 ## Privacy rules — non-negotiable
 
-- Treat every uploaded file as sensitive PII.
+- Treat every uploaded file as sensitive PII. Raw rows live only in the browser via `src/lib/localdata` (IndexedDB, 7-day expiry, cleared on sign out) — never in server code, logs, or the database.
 - Never log, persist, or put in error messages any raw row data, individual cell values, or open-text responses. Messages use counts and percentages only.
 - The only user-derived content persisted is aggregated analysis (`StoredAnalysis`): statistics, distributions, top-20 category labels, top-20 words. Anything new that would persist data derived from uploads must go through `buildStoredAnalysis`-style minimization and be flagged to the human.
 - Never send user-uploaded text to an AI API without a feature flag and a sanitization layer.
