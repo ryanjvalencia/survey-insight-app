@@ -177,6 +177,19 @@ alter table analysis_results enable row level security;
 
 ---
 
+## Design system
+
+- **Tokens** live in `src/app/globals.css` (`@theme`) and are used as Tailwind classes — never raw hex or Tailwind's default grays.
+  - Surfaces: `page`, `surface`, `surface-muted`, `surface-sunken`; lines: `line`, `line-soft`, `line-strong`.
+  - Ink: `ink` (headings/body), `ink-2` (secondary), `ink-3` (meta) — all WCAG AA on the surfaces.
+  - Brand: `brand-50…900`, one blue ramp shared with chart series 1. Brand fill is reserved for primary actions and active states (60-30-10: neutral / tint / accent).
+  - Charts: `series-1…8` (validated colorblind-safe order, never cycled), `series-other` gray, `diverge-*` for NPS.
+  - Status: `good`, `warning`, `critical` (+ `-text`, `-bg`) — only for good/bad meaning, always with an icon or label.
+- **Font:** Inter via `next/font` (`--font-inter`). Use `.tabular` for numbers that align in columns.
+- **Shared recipes:** `src/components/ui/styles.ts` (`btnPrimary`, `btnSecondary`, `btnGhost`, `card`, `input`, …), `Icon` (inline SVG set), `Logo`, `SubmitButton`.
+- **Charts** (`src/components/charts/`) are hand-built HTML/SVG — no chart library: `ColumnChart` (histograms, rating distributions), `DonutChart` (≤ 6 slices, top 5 + Other), `NpsMeter` (−100…+100 benchmark track + respondent split), `BarList` (top words), `ChartCard` (title + "Show data table"). Text never uses series colors; every chart has a table view and hover/focus tooltips.
+- **Motion:** keyframe utilities in `@theme` (`animate-fade-up`, `animate-pop`, `animate-grow-y`, …). Page transitions use React `<ViewTransition>` via `PageTransition` in each `page.tsx`; workflow links pass `transitionTypes={NAV_FORWARD | NAV_BACK}` for directional slides, everything else crossfades. The header is pinned (`view-transition-name: site-header`). All motion is disabled under `prefers-reduced-motion`.
+
 ## Naming conventions
 
 | Thing | Convention | Example |

@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import Icon from "@/components/ui/Icon";
+import PageTransition from "@/components/ui/PageTransition";
+import SubmitButton from "@/components/ui/SubmitButton";
+import { cardPadded, input } from "@/components/ui/styles";
 import { createProject } from "@/lib/db/projects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -16,40 +20,44 @@ async function create(formData: FormData) {
 
 export default function NewProjectPage() {
   return (
-    <div className="max-w-lg mx-auto px-6 py-12">
-      <PageHeader
-        title="New project"
-        description="Give your project a name, then upload your CSV file."
-        backHref="/dashboard"
-        backLabel="Back to projects"
-      />
+    <PageTransition>
+      <div className="max-w-xl mx-auto w-full px-4 sm:px-6 py-10">
+        <PageHeader
+          eyebrow="New project"
+          title="Name your analysis"
+          description="Use something your client will recognise — it appears on the report cover."
+          backHref="/dashboard"
+          backLabel="Back to projects"
+        />
 
-      <form action={create} className="space-y-4">
-        <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-zinc-700 mb-1"
-          >
-            Project name
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            maxLength={MAX_NAME_LENGTH}
-            placeholder="e.g. Q2 Customer Survey"
-            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
-          />
-        </div>
+        <form action={create} className={`${cardPadded} animate-fade-up space-y-5`}>
+          <div>
+            <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink">
+              Project name
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              autoFocus
+              maxLength={MAX_NAME_LENGTH}
+              placeholder="e.g. Acme Q2 customer survey"
+              className={input}
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-        >
-          Create project →
-        </button>
-      </form>
-    </div>
+          <SubmitButton pendingLabel="Creating…" className="w-full">
+            Create project
+            <Icon name="arrowRight" className="h-4 w-4" />
+          </SubmitButton>
+
+          <p className="flex items-center justify-center gap-1.5 text-xs text-ink-3">
+            <Icon name="shield" className="h-3.5 w-3.5" />
+            Survey files stay on your device — only summaries are saved.
+          </p>
+        </form>
+      </div>
+    </PageTransition>
   );
 }

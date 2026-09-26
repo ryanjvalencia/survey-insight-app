@@ -1,4 +1,7 @@
 import Link from "next/link";
+import Icon from "@/components/ui/Icon";
+import { NAV_BACK } from "@/components/ui/PageTransition";
+import { btnPrimary, card } from "@/components/ui/styles";
 
 interface LocalDataNoticeProps {
   kind: "loading" | "error" | "missing";
@@ -13,24 +16,46 @@ const MESSAGES = {
     "No file loaded on this device. Files stay in your browser for 7 days (or until you sign out) and are never uploaded to our servers.",
 } as const;
 
+const ICONS = { loading: "file", error: "alert", missing: "upload" } as const;
+
 /** Empty/loading/error state for steps that need the raw file. */
 export default function LocalDataNotice({ kind, projectId }: LocalDataNoticeProps) {
-  return (
-    <div className="space-y-6">
-      <div
-        role={kind === "error" ? "alert" : "status"}
-        className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center"
-      >
-        <p className="text-sm text-zinc-500 max-w-md mx-auto">{MESSAGES[kind]}</p>
+  if (kind === "loading") {
+    return (
+      <div role="status" className={`${card} space-y-3 p-6`}>
+        <span className="sr-only">{MESSAGES.loading}</span>
+        {[70, 90, 55].map((w) => (
+          <div
+            key={w}
+            className="h-3 animate-shimmer rounded-full bg-[linear-gradient(90deg,var(--color-surface-sunken),var(--color-line-soft),var(--color-surface-sunken))] bg-[length:200%_100%]"
+            style={{ width: `${w}%` }}
+          />
+        ))}
       </div>
-      {kind !== "loading" && (
-        <Link
-          href={`/projects/${projectId}/upload`}
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-        >
-          Upload file
-        </Link>
-      )}
+    );
+  }
+
+  return (
+    <div
+      role={kind === "error" ? "alert" : "status"}
+      className={`${card} animate-fade-up px-6 py-12 text-center`}
+    >
+      <div
+        className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${
+          kind === "error" ? "bg-critical-bg text-critical-text" : "bg-brand-50 text-brand-700"
+        }`}
+      >
+        <Icon name={ICONS[kind]} className="h-6 w-6" />
+      </div>
+      <p className="mx-auto max-w-md text-sm leading-relaxed text-ink-2">{MESSAGES[kind]}</p>
+      <Link
+        href={`/projects/${projectId}/upload`}
+        transitionTypes={NAV_BACK}
+        className={`${btnPrimary} mt-6`}
+      >
+        <Icon name="upload" className="h-4 w-4" />
+        Upload file
+      </Link>
     </div>
   );
 }

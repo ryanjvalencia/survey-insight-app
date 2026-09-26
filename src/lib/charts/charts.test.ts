@@ -193,7 +193,7 @@ describe("buildCharts — category pie", () => {
     }
   });
 
-  it("collapses categories beyond top 10 into 'Other'", () => {
+  it("collapses categories beyond the top 5 into 'Other' (6 slices max)", () => {
     const frequencies = Array.from({ length: 12 }, (_, i) => ({
       value: `cat${i}`,
       count: 12 - i,
@@ -212,8 +212,8 @@ describe("buildCharts — category pie", () => {
     };
     const { charts } = buildCharts(quant, emptyText());
     if (charts[0].type === "pie") {
-      expect(charts[0].data).toHaveLength(11); // 10 + "Other"
-      expect(charts[0].data[10].label).toBe("Other");
+      expect(charts[0].data).toHaveLength(6); // top 5 + "Other"
+      expect(charts[0].data[5]).toEqual({ label: "Other", value: 78 - (12 + 11 + 10 + 9 + 8) });
     }
   });
 });
@@ -335,5 +335,30 @@ describe("formatBinEdge", () => {
   it("rounds large values and adds thousands separators", () => {
     expect(formatBinEdge(125_250.4)).toBe("125,250");
     expect(formatBinEdge(-2500)).toBe("-2,500");
+  });
+});
+
+describe("buildCharts — pie slice limits", () => {
+  function pieFor(n: number, totalResponses = n * 2) {
+    const frequencies = Array.from({ length: n }, (_, i) => ({ value: `c${i}`, count: 2, pct: 0 }));
+    const quant: QuantitativeAnalysis = {
+      ...emptyQuant(),
+      categories: [{ columnName: "c", frequencies, uniqueCount: n, totalResponses }],
+    };
+    const [chart] = buildCharts(quant, emptyText()).charts;
+    if (chart.type !== "pie") throw new Error("expected pie");
+    return chart;
+  }
+
+  it("shows exactly 6 categories without an 'Other' slice", () => {
+    const chart = pieFor(6);
+    expect(chart.data).toHaveLength(6);
+    expect(chart.data.some((d) => d.label === "Other")).toBe(false);
+  });
+
+  it("derives 'Other' from the column total when the frequency list was truncated", () => {
+    // 20 stored categories, but the column had 100 responses in total.
+    const chart = pieFor(20, 100);
+    expect(chart.data.at(-1)).toEqual({ label: "Other", value: 100 - 5 * 2 });
   });
 });
