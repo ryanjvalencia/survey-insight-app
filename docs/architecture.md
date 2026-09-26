@@ -96,24 +96,28 @@ Supabase email + password auth via `@supabase/ssr` (session stored in cookies so
 
 ## Persistence pattern
 
-**Raw survey data:** browser sessionStorage only — never sent to the database. The whole pipeline (clean → analyze → insights → charts) runs client-side when the user clicks "Next: Analyze" on the mapping step.
+**Raw survey data:** stays on the user's device in IndexedDB (`src/lib/localdata`) — never sent to the server. The whole pipeline (clean → analyze → insights → charts) runs client-side when the user clicks "Next: Analyze" on the mapping step; only the aggregated results are then saved.
 
-**sessionStorage keys (per project):**
+**Local storage (IndexedDB database `survey-insight`, object store `project-data`):**
 
 | Key | Value |
 |---|---|
-| `preview:${projectId}` | `ParseResult` — raw parsed dataset |
-| `mapping:${projectId}` | `ColumnMapping[]` — user-confirmed column types |
-| `cleaning:${projectId}` | `CleaningSummary` — counts only, no row data |
-| `analysis:${projectId}` | `{ quant, text, insights, charts }` — full analysis payload |
+| `upload:${projectId}` | `{ savedAt, value: ParseResult }` — raw parsed dataset |
+| `columns:${projectId}` | `{ savedAt, value: Record<column, ColumnType> }` — the user's column type choices, saved on every change |
 
-Components read these via `useSyncExternalStore` (hydration-safe; avoids setState-in-effect lint errors). Closing the tab loses them — reopening a project from the dashboard currently shows an empty state.
+- Logic lives in `src/lib/localdata/index.ts` against a small `LocalStore` interface; `indexeddb.ts` is the browser implementation and `memory.ts` the test implementation.
+- Client components read it with `useLocalProjectData(projectId)` (`src/components/localdata/`), which returns `loading | error | ready`.
+- Privacy limits, since IndexedDB outlives the tab: entries expire after 7 days (`LOCAL_RETENTION_MS`, purged on read and on every app load by `Nav`), and signing out clears everything before the session ends. Re-uploading a file resets that project's column choices.
+- IndexedDB quota is a share of free disk space (hundreds of MB+), so the 10 MB / 50,000-row limit is achievable; a 50k-row file is ~13 MB once parsed. Private browsing or strict privacy settings can block IndexedDB — the UI shows a specific error.
 
 **Metadata persisted to Supabase:**
 - `projects` table — project name, status (`created` → `uploaded` → `analyzed`), timestamps
 - `datasets` table — row count, column count, sanitized original filename; linked to project
+- `analysis_results` table — one row per project (`project_id` unique, upserted on re-analysis) holding a `StoredAnalysis` JSON payload: cleaning summary, quantitative stats, text stats, insights, chart specs
 
-**Status flow:** `createProject` (Server Action in `projects/new`) → `recordUpload` (Server Action, called by `UploadSection`) → `markAnalyzed` (Server Action, called by `MappingSection` after the full pipeline).
+**Stored analysis (`src/lib/results`):** `buildStoredAnalysis` minimizes what leaves the browser — the full per-word vocabulary (`wordFrequencies`) is emptied, keeping only the displayed top 20 words, and category frequency tables keep their top 20 values (`uniqueCount` still reflects the full column). The payload is versioned (`version: 1`). The `saveAnalysis` Server Action re-runs `parseStoredAnalysis`, which validates structure, re-applies minimization, and rejects payloads over 512 KB; reads go through the same validator so an unrecognized version renders as "not analyzed yet".
+
+**Status flow:** `createProject` (Server Action in `projects/new`) → `recordUpload` (Server Action, called by `UploadSection`) → `saveAnalysis` (Server Action, called by `MappingSection` after the full pipeline; stores results and sets status `analyzed`). The analysis and report pages load results server-side with `getAnalysisResult`.
 
 **Server-only database access:** The browser never talks to Supabase directly. All queries go through Server Components and Server Actions using `createSupabaseServerClient()`, which carries the signed-in user's session cookie, so RLS applies to every query. `src/lib/db/*` functions take that client as their first argument. Server Actions re-validate everything from the browser (`parseDatasetMeta`, `isUuid`) before writing.
 
@@ -141,7 +145,16 @@ create table datasets (
 
 alter table projects enable row level security;
 alter table datasets enable row level security;
--- Owner-only policies: see supabase/migrations/20260926000000_user_scoped_rls.sql
+
+create table analysis_results (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null unique references projects on delete cascade,
+  result jsonb not null,               -- StoredAnalysis; aggregates only, <= 1 MB
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table analysis_results enable row level security;
+-- Owner-only policies: see supabase/migrations/
 ```
 
 ---

@@ -35,7 +35,7 @@ Find these in your Supabase project via the **Connect** button (or **Project Set
 
 ## Database setup
 
-Run each file in [`supabase/migrations/`](supabase/migrations/) in order, in the Supabase dashboard under **SQL Editor → New query**. They are idempotent, so re-running is safe.
+Run each file in [`supabase/migrations/`](supabase/migrations/) in filename order, in the Supabase dashboard under **SQL Editor → New query**. They are idempotent, so re-running is safe. The first file (`..._baseline_schema.sql`) creates the original tables for fresh databases, such as Supabase preview branches; on an existing database it does nothing.
 
 Authentication uses Supabase email + password. Email confirmation is controlled in the dashboard under **Authentication → Sign In / Providers → Email**.
 

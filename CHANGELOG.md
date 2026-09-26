@@ -7,33 +7,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Security
-- Per-user data ownership: `projects.user_id` defaults to `auth.uid()` and is required; permissive RLS replaced with owner-only policies on `projects` and `datasets` (`supabase/migrations/20260926000000_user_scoped_rls.sql`). The migration deletes pre-auth ownerless projects.
-- All database access moved server-side (Server Components / Server Actions); the browser no longer queries Supabase. Server Actions re-validate upload metadata (`parseDatasetMeta`) and project ids (`isUuid`).
-- Post-login redirect targets are sanitized (`safeRedirectPath`) to prevent open redirects.
-
 ### Added
+- `scripts/generate-test-csv.mjs`: generates synthetic, deliberately messy survey CSVs (10k, 50k, 50,001 rows by default, or any row count) into gitignored `test-data/`.
+- Analysis results are saved to the account (`analysis_results` table, `supabase/migrations/20260926010000_analysis_results.sql`), so reopening a project from the dashboard shows its analysis and report after the tab is closed. Re-analyzing replaces the saved result.
+- `src/lib/results`: `buildStoredAnalysis` / `parseStoredAnalysis` — versioned payload, server-side validation, 512 KB limit. `src/lib/db/analysis.ts`: `saveAnalysisResult`, `getAnalysisResult`.
 - Email + password authentication with `@supabase/ssr` 0.12.7 — the official Supabase package for cookie-based sessions in Next.js server code. `/login` and `/signup` pages, sign-out in the nav, `src/proxy.ts` protecting `/dashboard` and `/projects/**`.
 - Project pages 404 for malformed ids and projects the user doesn't own.
-
-### Fixed
-- Next.js upgraded 16.2.6 → 16.3.6: Turbopack dev server on Windows spawned unbounded PostCSS workers (~2,000 processes, ~18 GB RAM), freezing the machine.
-- Upload no longer reports a database failure as "Failed to read the file".
-- Dashboard shows an error instead of an empty project list when projects fail to load.
-
-### Removed
-- Multi-agent orchestrator scaffolding (`AGENTS.md`, agent operating-system/prompt docs, issue generator script, `/implement-issue` and `/review-pr` skills, agent-task issue template, `src/lib/data` stub)
-
-### Changed
-- `CLAUDE.md` rewritten as a concise project guide; `docs/roadmap.md` replaced with a launch checklist; PR template, security doc, and `/qa-workflow` skill no longer reference agent roles
-- `docs/architecture.md` now holds the sessionStorage keys, DB schema, design decisions, and known limitations (previously in `docs/handoff.md`)
-- Product spec names consultants as the primary audience
-- CI runs on Node 24 (Node 20 is end-of-life)
-- `dashboard/` and `projects/` moved into `(app)/` route group — URLs unchanged (#3)
-- `[projectId]/layout.tsx` — removed redundant nav header, now delegates to `StepNav` (#3)
-- `README.md` — replaced Next.js boilerplate with project-specific setup instructions
-
-### Added
 - Supabase persistence (#20) — `@supabase/supabase-js` installed; `src/lib/supabase/client.ts` singleton client; `src/lib/db/projects.ts` (createProject, getProject, listProjects, updateProjectStatus) and `src/lib/db/datasets.ts` (saveDataset); 13 unit tests for all DB functions. Project creation now writes to Supabase via a Server Action; dashboard fetches live project list; upload step persists dataset metadata (row count, column count, sanitized filename — no raw rows); mapping step updates project status to `analyzed`. RLS enabled on both tables with open policies for pre-auth phase.
 - Report page (`src/app/(app)/projects/[projectId]/report/`) — `ReportSection` renders printable insights/stats summary and wires CSV download (re-runs cleaning from sessionStorage) and print-to-PDF via `window.print()` (#18, #19)
 - Analysis dashboard (`src/app/(app)/projects/[projectId]/analysis/`) — `AnalysisDashboard` client component reads sessionStorage and renders cleaning summary, rule-based insights, and charts (NPS gauge, rating/numeric bar charts, category frequency table, word cloud); `MappingSection` updated to run the full pipeline on "Next: Analyze" (#12, #16)
@@ -51,6 +30,40 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Nav` component (`src/components/layout/Nav.tsx`) — sticky top nav with active-state highlighting via `usePathname` (#3)
 - `StepNav` component (`src/components/layout/StepNav.tsx`) — per-project workflow step strip with active step highlighting (#3)
 - `docs/architecture.md` — route structure, component conventions, module layout
+
+### Changed
+- Analysis and report pages load results on the server; `AnalysisDashboard` is now a Server Component.
+- "Next: Analyze" shows an error and stays on the page if results can't be saved, instead of continuing silently.
+- The report explains that the cleaned CSV needs the file re-uploaded when the raw data isn't in the current tab (raw rows are never stored server-side).
+- `CLAUDE.md` rewritten as a concise project guide; `docs/roadmap.md` replaced with a launch checklist; PR template, security doc, and `/qa-workflow` skill no longer reference agent roles
+- `docs/architecture.md` now holds the sessionStorage keys, DB schema, design decisions, and known limitations (previously in `docs/handoff.md`)
+- Product spec names consultants as the primary audience
+- CI runs on Node 24 (Node 20 is end-of-life)
+- `dashboard/` and `projects/` moved into `(app)/` route group — URLs unchanged (#3)
+- `[projectId]/layout.tsx` — removed redundant nav header, now delegates to `StepNav` (#3)
+- `README.md` — replaced Next.js boilerplate with project-specific setup instructions
+
+### Fixed
+- Numeric histograms showed 0 in every bin: bins were built from min/max only with hard-coded zero counts. Analysis now counts values into 10 equal-width bins (`histogramBins`, stored as `NumericResult.bins`) and charts use those counts. Labels use thousands separators for large values. Projects analyzed before this fix need re-analyzing to populate their histograms.
+- Columns with currency or thousands-separated values (`$1,234`, `€99.50`, `12,000`) are now detected as Numeric instead of Unknown.
+- Column type choices on the mapping step are saved on every change and restored when returning to the step (previously lost when navigating between steps).
+- Files up to the advertised 10 MB / 50,000 rows now work: raw rows moved from `sessionStorage` (~5M character cap, which a ~15–20k-row file already exceeded) to IndexedDB.
+- NPS is shown with its −100 to +100 scale, a sign (+17.6), and the average 0–10 answer; the bare number read as out of range. The calculation itself was correct.
+- Upload now enforces the row limit and empty/header checks using the parsed row count (`validateParsedDataset`); previously `validateCSVContent` existed but was never called, so a 50,001-row file failed later with "Invalid upload details." Line-based counting also over-counted quoted multi-line fields.
+- Upload shows a specific message when the browser blocks local storage instead of "Failed to read the file".
+- Next.js upgraded 16.2.6 → 16.3.6: Turbopack dev server on Windows spawned unbounded PostCSS workers (~2,000 processes, ~18 GB RAM), freezing the machine.
+- Upload no longer reports a database failure as "Failed to read the file".
+- Dashboard shows an error instead of an empty project list when projects fail to load.
+
+### Removed
+- Multi-agent orchestrator scaffolding (`AGENTS.md`, agent operating-system/prompt docs, issue generator script, `/implement-issue` and `/review-pr` skills, agent-task issue template, `src/lib/data` stub)
+
+### Security
+- Raw uploaded rows stay on the device in IndexedDB, expire after 7 days, and are cleared on sign out.
+- Data minimization for stored analysis: the full per-word vocabulary from open-text answers is dropped (only the displayed top 20 words are kept) and category frequency tables are capped at 20 values, enforced server-side. RLS on `analysis_results` follows parent-project ownership.
+- Per-user data ownership: `projects.user_id` defaults to `auth.uid()` and is required; permissive RLS replaced with owner-only policies on `projects` and `datasets` (`supabase/migrations/20260926000000_user_scoped_rls.sql`). The migration deletes pre-auth ownerless projects.
+- All database access moved server-side (Server Components / Server Actions); the browser no longer queries Supabase. Server Actions re-validate upload metadata (`parseDatasetMeta`) and project ids (`isUuid`).
+- Post-login redirect targets are sanitized (`safeRedirectPath`) to prevent open redirects.
 
 ---
 

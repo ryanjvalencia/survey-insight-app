@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCharts } from "./index";
+import { buildCharts, formatBinEdge, formatNpsScore } from "./index";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 
@@ -38,6 +38,7 @@ describe("buildCharts — NPS gauge", () => {
     if (charts[0].type === "nps_gauge") {
       expect(charts[0].score).toBe(20);
       expect(charts[0].totalResponses).toBe(6);
+      expect(charts[0].mean).toBe(7.5);
     }
   });
 });
@@ -85,15 +86,62 @@ describe("buildCharts — numeric histogram", () => {
           min: 18,
           max: 65,
           totalResponses: 100,
+          bins: [
+            { lo: 18, hi: 41.5, count: 70 },
+            { lo: 41.5, hi: 65, count: 30 },
+          ],
         },
       ],
     };
     const { charts } = buildCharts(quant, emptyText());
     expect(charts[0].type).toBe("histogram");
     if (charts[0].type === "histogram") {
-      expect(charts[0].data).toHaveLength(10);
+      expect(charts[0].data).toEqual([
+        { label: "18–41.5", value: 70 },
+        { label: "41.5–65", value: 30 },
+      ]);
       expect(charts[0].mean).toBe(35);
     }
+  });
+
+  it("uses the real bin counts, not zeros (regression)", () => {
+    const quant: QuantitativeAnalysis = {
+      ...emptyQuant(),
+      numerics: [
+        {
+          columnName: "annual_revenue",
+          mean: 60_000,
+          median: 55_000,
+          stdDev: 30_000,
+          min: 500,
+          max: 250_000,
+          totalResponses: 3,
+          bins: [
+            { lo: 500, hi: 125_250, count: 2 },
+            { lo: 125_250, hi: 250_000, count: 1 },
+          ],
+        },
+      ],
+    };
+    const [chart] = buildCharts(quant, emptyText()).charts;
+    if (chart.type !== "histogram") throw new Error("expected histogram");
+    expect(chart.data.map((d) => d.value)).toEqual([2, 1]);
+    expect(chart.data[0].label).toBe("500–125,250");
+  });
+
+  it("renders an empty histogram for results saved before bins existed", () => {
+    const legacy = {
+      columnName: "v",
+      mean: 1,
+      median: 1,
+      stdDev: 0,
+      min: 1,
+      max: 2,
+      totalResponses: 2,
+    } as unknown as QuantitativeAnalysis["numerics"][number];
+    const [chart] = buildCharts({ ...emptyQuant(), numerics: [legacy] }, emptyText()).charts;
+    if (chart.type !== "histogram") throw new Error("expected histogram");
+    expect(chart.data).toEqual([]);
   });
 
   it("handles min === max (single value dataset)", () => {
@@ -108,12 +156,13 @@ describe("buildCharts — numeric histogram", () => {
           min: 5,
           max: 5,
           totalResponses: 3,
+          bins: [{ lo: 5, hi: 5, count: 3 }],
         },
       ],
     };
     const { charts } = buildCharts(quant, emptyText());
     if (charts[0].type === "histogram") {
-      expect(charts[0].data).toHaveLength(1);
+      expect(charts[0].data).toEqual([{ label: "5", value: 3 }]);
     }
   });
 });
@@ -250,5 +299,41 @@ describe("buildCharts — empty inputs", () => {
     expect(charts).toHaveLength(2);
     expect(charts.some((c) => c.type === "nps_gauge")).toBe(true);
     expect(charts.some((c) => c.type === "bar")).toBe(true);
+  });
+});
+
+// ── NPS formatting ────────────────────────────────────────────────────────────
+
+describe("formatNpsScore", () => {
+  it("prefixes positive scores with a plus sign", () => {
+    expect(formatNpsScore(17.62)).toBe("+17.6");
+    expect(formatNpsScore(100)).toBe("+100");
+  });
+
+  it("prefixes negative scores with a minus sign", () => {
+    expect(formatNpsScore(-4)).toBe("−4");
+    expect(formatNpsScore(-100)).toBe("−100");
+  });
+
+  it("shows zero without a sign, including values that round to zero", () => {
+    expect(formatNpsScore(0)).toBe("0");
+    expect(formatNpsScore(0.04)).toBe("0");
+    expect(formatNpsScore(-0.04)).toBe("0");
+  });
+
+  it("renders a dash for non-finite input", () => {
+    expect(formatNpsScore(Number.NaN)).toBe("—");
+  });
+});
+
+describe("formatBinEdge", () => {
+  it("keeps one decimal place for small values", () => {
+    expect(formatBinEdge(41.25)).toBe("41.3");
+    expect(formatBinEdge(7)).toBe("7");
+  });
+
+  it("rounds large values and adds thousands separators", () => {
+    expect(formatBinEdge(125_250.4)).toBe("125,250");
+    expect(formatBinEdge(-2500)).toBe("-2,500");
   });
 });

@@ -29,6 +29,8 @@ export interface NPSGaugeChart {
   passivePct: number;
   detractorPct: number;
   totalResponses: number;
+  /** Average raw answer on the 0–10 scale (the NPS itself is −100 to +100). */
+  mean: number;
 }
 
 export interface BarChart {
@@ -104,7 +106,20 @@ function npsGauge(r: NPSResult): NPSGaugeChart {
     passivePct: r.passivePct,
     detractorPct: r.detractorPct,
     totalResponses: r.totalResponses,
+    mean: r.mean,
   };
+}
+
+/**
+ * Formats a Net Promoter Score (−100 to +100) with an explicit sign, e.g.
+ * "+17.6", "−4", "0". Uses a true minus sign for readability.
+ */
+export function formatNpsScore(score: number): string {
+  if (!Number.isFinite(score)) return "—";
+  const rounded = Math.round(score * 10) / 10;
+  if (rounded === 0) return "0";
+  const abs = Math.abs(rounded).toString();
+  return rounded > 0 ? `+${abs}` : `−${abs}`;
 }
 
 function ratingBar(r: RatingResult): BarChart {
@@ -122,12 +137,16 @@ function ratingBar(r: RatingResult): BarChart {
 }
 
 function numericHistogram(r: NumericResult): HistogramChart {
-  const buckets = buildBuckets(r.min, r.max, 10);
+  // Older saved results predate `bins`; show an empty chart rather than crash.
+  const bins = r.bins ?? [];
   return {
     type: "histogram",
     columnName: r.columnName,
     title: `${r.columnName} distribution`,
-    data: buckets,
+    data: bins.map((b) => ({
+      label: b.lo === b.hi ? formatBinEdge(b.lo) : `${formatBinEdge(b.lo)}–${formatBinEdge(b.hi)}`,
+      value: b.count,
+    })),
     mean: r.mean,
     median: r.median,
   };
@@ -168,21 +187,8 @@ function wordCloudData(r: TextColumnAnalysis): WordCloudDataChart {
  * Builds N evenly-spaced histogram buckets between min and max.
  * Returns count=0 for empty buckets (callers may filter as needed).
  */
-function buildBuckets(min: number, max: number, n: number): BarDataPoint[] {
-  if (min === max) {
-    return [{ label: String(min), value: 1 }];
-  }
-  const step = (max - min) / n;
-  return Array.from({ length: n }, (_, i) => {
-    const lo = min + i * step;
-    const hi = lo + step;
-    return {
-      label: `${round1(lo)}–${round1(hi)}`,
-      value: 0,
-    };
-  });
-}
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
+/** Short bin label: whole numbers with separators for large values, else 1 dp. */
+export function formatBinEdge(n: number): string {
+  if (Math.abs(n) >= 1000) return Math.round(n).toLocaleString("en-US");
+  return String(Math.round(n * 10) / 10);
 }

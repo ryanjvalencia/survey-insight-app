@@ -1,5 +1,6 @@
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
+import { formatNpsScore } from "@/lib/charts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ function npsInsights(r: {
   detractorPct: number;
   passivePct: number;
   totalResponses: number;
+  mean: number;
 }): Insight[] {
   const results: Insight[] = [];
 
@@ -58,8 +60,8 @@ function npsInsights(r: {
 
   results.push({
     id: `nps_score_${r.columnName}`,
-    title: `NPS score: ${r.score}`,
-    body: `"${r.columnName}" has an NPS of ${r.score} from ${r.totalResponses.toLocaleString()} responses. ${r.promoterPct}% are promoters, ${r.passivePct}% passives, and ${r.detractorPct}% detractors.`,
+    title: `NPS: ${formatNpsScore(r.score)}`,
+    body: `"${r.columnName}" has a Net Promoter Score of ${formatNpsScore(r.score)} on a −100 to +100 scale, from ${r.totalResponses.toLocaleString()} responses (average answer ${r.mean} / 10). ${r.promoterPct}% are promoters (9–10), ${r.passivePct}% passives (7–8), and ${r.detractorPct}% detractors (0–6).`,
     severity,
     columnName: r.columnName,
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeQuantitative } from "./index";
+import { analyzeQuantitative, histogramBins, HISTOGRAM_BIN_COUNT } from "./index";
 import type { ColumnMapping, Dataset } from "@/types";
 
 function makeDataset(
@@ -229,5 +229,58 @@ describe("analyzeQuantitative — multiple column types", () => {
     expect(result.ratings).toHaveLength(0);
     expect(result.numerics).toHaveLength(0);
     expect(result.categories).toHaveLength(0);
+  });
+});
+
+// ── Histogram bins ────────────────────────────────────────────────────────────
+
+describe("histogramBins", () => {
+  it("counts every value exactly once", () => {
+    const values = [1, 2, 2, 3, 5, 8, 13, 21, 34, 55];
+    const bins = histogramBins(values, HISTOGRAM_BIN_COUNT);
+    expect(bins).toHaveLength(HISTOGRAM_BIN_COUNT);
+    expect(bins.reduce((sum, b) => sum + b.count, 0)).toBe(values.length);
+  });
+
+  it("puts the minimum in the first bin and the maximum in the last", () => {
+    const bins = histogramBins([0, 10], 10);
+    expect(bins[0].count).toBe(1);
+    expect(bins[9].count).toBe(1);
+    expect(bins.slice(1, 9).every((b) => b.count === 0)).toBe(true);
+  });
+
+  it("spans min to max with equal-width edges", () => {
+    const bins = histogramBins([0, 5, 10], 2);
+    expect(bins).toEqual([
+      { lo: 0, hi: 5, count: 1 },
+      { lo: 5, hi: 10, count: 2 },
+    ]);
+  });
+
+  it("returns one bin holding everything when all values are equal", () => {
+    expect(histogramBins([4, 4, 4], 10)).toEqual([{ lo: 4, hi: 4, count: 3 }]);
+  });
+
+  it("returns no bins for no values", () => {
+    expect(histogramBins([], 10)).toEqual([]);
+  });
+
+  it("handles negative and fractional values", () => {
+    const bins = histogramBins([-1.5, -0.5, 0.5, 1.5], 2);
+    expect(bins.map((b) => b.count)).toEqual([2, 2]);
+  });
+});
+
+describe("analyzeQuantitative — numeric bins", () => {
+  it("attaches populated histogram bins to numeric results", () => {
+    const rows = ["500", "1000", "1500", "250000"].map((v) => ({ revenue: v }));
+    const dataset = { headers: ["revenue"], rows, rowCount: rows.length, parseWarnings: [] };
+    const { numerics } = analyzeQuantitative(dataset, [
+      { name: "revenue", type: "numeric", inferredType: "numeric", confidence: 1 },
+    ]);
+    const bins = numerics[0].bins;
+    expect(bins).toHaveLength(HISTOGRAM_BIN_COUNT);
+    expect(bins[0].count).toBe(3);
+    expect(bins[HISTOGRAM_BIN_COUNT - 1].count).toBe(1);
   });
 });

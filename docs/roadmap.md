@@ -22,7 +22,7 @@ Target audience: consultants analyzing client survey data. See `docs/product-spe
    - Add `user_id` to `projects`; replace permissive RLS with `auth.uid() = user_id` policies
    - Check the uploaded dataset against the logged-in user before saving
    - Don't let a failing database call in upload look like a file read error
-3. [ ] **Persist analysis results** — store aggregated results (no raw rows) so reopening a project from the dashboard works after the tab is closed
+3. [x] **Persist analysis results** — store aggregated results (no raw rows) so reopening a project from the dashboard works after the tab is closed
 4. [ ] **Consultant-ready presentation**
    - Visual polish and branding across the app
    - Real chart library for the dashboard

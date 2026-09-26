@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DropZone, { type SelectedFile } from "@/components/upload/DropZone";
 import { parseCSV } from "@/lib/parse";
+import { validateParsedDataset } from "@/lib/validate";
+import { saveUpload } from "@/lib/localdata";
+import { getBrowserStore } from "@/lib/localdata/indexeddb";
 import type { ParseResult } from "@/types";
 import { recordUpload } from "../actions";
 
@@ -25,14 +28,32 @@ export default function UploadSection({ projectId }: UploadSectionProps) {
     try {
       const text = await file.file.text();
       result = parseCSV(text, file.name);
-      sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
     } catch {
       setError("Failed to read the file. Please try again.");
       setLoading(false);
       return;
     }
 
-    // Persist metadata only — raw rows stay in sessionStorage, never sent to DB
+    const validation = validateParsedDataset(result.dataset);
+    const blocking = validation.issues.find((i) => i.severity === "error");
+    if (blocking) {
+      setError(blocking.message);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Raw rows stay on this device (IndexedDB); only counts go to the server.
+      await saveUpload(getBrowserStore(), projectId, result);
+    } catch {
+      setError(
+        "Couldn't store the file in this browser. Private browsing, low disk space, or strict privacy settings can block this.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    // Persist metadata only — raw rows never leave the browser
     const saved = await recordUpload({
       projectId,
       originalFilename: result.originalFilename,

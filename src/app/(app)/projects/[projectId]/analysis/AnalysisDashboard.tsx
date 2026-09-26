@@ -1,96 +1,30 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { CleaningSummary } from "@/types";
-import type { QuantitativeAnalysis } from "@/lib/analysis";
-import type { TextAnalysis } from "@/lib/text";
-import type { ChartSet } from "@/lib/charts";
+import { formatNpsScore, type ChartSet } from "@/lib/charts";
 import type { InsightReport } from "@/lib/insights";
-
-// ── sessionStorage helpers ────────────────────────────────────────────────────
-
-const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
-  () => () => {};
-
-type AnalysisPayload = {
-  quant: QuantitativeAnalysis;
-  text: TextAnalysis;
-  insights: InsightReport;
-  charts: ChartSet;
-};
-
-const cleaningCache = new Map<
-  string,
-  { raw: string | null; result: CleaningSummary | null }
->();
-const analysisCache = new Map<
-  string,
-  { raw: string | null; result: AnalysisPayload | null }
->();
-
-function readCleaning(projectId: string): CleaningSummary | null {
-  const raw = sessionStorage.getItem(`cleaning:${projectId}`);
-  const cached = cleaningCache.get(projectId);
-  if (cached && cached.raw === raw) return cached.result;
-  let result: CleaningSummary | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as CleaningSummary;
-    } catch {
-      result = null;
-    }
-  }
-  cleaningCache.set(projectId, { raw, result });
-  return result;
-}
-
-function readAnalysis(projectId: string): AnalysisPayload | null {
-  const raw = sessionStorage.getItem(`analysis:${projectId}`);
-  const cached = analysisCache.get(projectId);
-  if (cached && cached.raw === raw) return cached.result;
-  let result: AnalysisPayload | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as AnalysisPayload;
-    } catch {
-      result = null;
-    }
-  }
-  analysisCache.set(projectId, { raw, result });
-  return result;
-}
+import type { StoredAnalysis } from "@/lib/results";
 
 interface Props {
   projectId: string;
+  analysis: StoredAnalysis | null;
 }
 
-export default function AnalysisDashboard({ projectId }: Props) {
-  const cleaning = useSyncExternalStore(
-    subscribe,
-    () => readCleaning(projectId),
-    () => null,
-  );
-  const analysis = useSyncExternalStore(
-    subscribe,
-    () => readAnalysis(projectId),
-    () => null,
-  );
-
+export default function AnalysisDashboard({ projectId, analysis }: Props) {
   if (!analysis) {
     return (
       <div className="space-y-6">
         <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-sm text-zinc-500">
-            No analysis data — go back to mapping and click &quot;Next: Analyze&quot;.
+            This project hasn&apos;t been analyzed yet. Upload your file and
+            confirm the column types to run the analysis.
           </p>
         </div>
         <div className="flex justify-start">
           <Link
-            href={`/projects/${projectId}/mapping`}
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+            href={`/projects/${projectId}/upload`}
+            className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
           >
-            ← Back to mapping
+            Upload data
           </Link>
         </div>
       </div>
@@ -99,7 +33,7 @@ export default function AnalysisDashboard({ projectId }: Props) {
 
   return (
     <div className="space-y-10">
-      {cleaning && <CleaningSection summary={cleaning} />}
+      <CleaningSection summary={analysis.cleaning} />
       <InsightsSection report={analysis.insights} />
       <ChartsSection charts={analysis.charts} />
 
@@ -277,7 +211,13 @@ function ChartCard({
         <p className="text-xs font-medium text-zinc-500 mb-3">
           {chart.columnName} — NPS
         </p>
-        <p className="text-5xl font-bold text-zinc-900 mb-4">{chart.score}</p>
+        <p className="text-5xl font-bold text-zinc-900">
+          {formatNpsScore(chart.score)}
+        </p>
+        <p className="text-xs text-zinc-400 mt-1 mb-4">
+          Net Promoter Score, −100 to +100
+          {Number.isFinite(chart.mean) && <> · average answer {chart.mean} / 10</>}
+        </p>
         <div className="flex gap-3 text-xs">
           <span className="text-emerald-700">
             {chart.promoterPct}% promoters

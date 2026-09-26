@@ -1,98 +1,42 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import type { ParseResult, ColumnMapping, CleaningSummary } from "@/types";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 import type { InsightReport } from "@/lib/insights";
+import type { StoredAnalysis } from "@/lib/results";
+import { formatNpsScore } from "@/lib/charts";
 import { cleanDataset } from "@/lib/clean";
 import { serializeCSV } from "@/lib/export";
-
-// ── sessionStorage helpers ────────────────────────────────────────────────────
-
-const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
-  () => () => {};
-
-type AnalysisPayload = {
-  quant: QuantitativeAnalysis;
-  text: TextAnalysis;
-  insights: InsightReport;
-};
-
-const previewCache = new Map<
-  string,
-  { raw: string | null; result: ParseResult | null }
->();
-const mappingCache = new Map<
-  string,
-  { raw: string | null; result: ColumnMapping[] | null }
->();
-const cleaningCache = new Map<
-  string,
-  { raw: string | null; result: CleaningSummary | null }
->();
-const analysisCache = new Map<
-  string,
-  { raw: string | null; result: AnalysisPayload | null }
->();
-
-function readStored<T>(
-  key: string,
-  cache: Map<string, { raw: string | null; result: T | null }>,
-): T | null {
-  const raw = sessionStorage.getItem(key);
-  const cached = cache.get(key);
-  if (cached && cached.raw === raw) return cached.result;
-  let result: T | null = null;
-  if (raw) {
-    try {
-      result = JSON.parse(raw) as T;
-    } catch {
-      result = null;
-    }
-  }
-  cache.set(key, { raw, result });
-  return result;
-}
+import { inferColumnTypes } from "@/lib/infer";
+import { applyColumnTypes } from "@/lib/localdata";
+import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   projectId: string;
+  analysis: StoredAnalysis | null;
 }
 
-export default function ReportSection({ projectId }: Props) {
-  const preview = useSyncExternalStore(
-    subscribe,
-    () => readStored<ParseResult>(`preview:${projectId}`, previewCache),
-    () => null,
-  );
-  const mappings = useSyncExternalStore(
-    subscribe,
-    () => readStored<ColumnMapping[]>(`mapping:${projectId}`, mappingCache),
-    () => null,
-  );
-  const cleaning = useSyncExternalStore(
-    subscribe,
-    () => readStored<CleaningSummary>(`cleaning:${projectId}`, cleaningCache),
-    () => null,
-  );
-  const analysis = useSyncExternalStore(
-    subscribe,
-    () => readStored<AnalysisPayload>(`analysis:${projectId}`, analysisCache),
-    () => null,
-  );
+export default function ReportSection({ projectId, analysis }: Props) {
+  // Raw rows and column choices live only on this device (IndexedDB); the
+  // cleaned CSV is rebuilt here and never sent to the server.
+  const local = useLocalProjectData(projectId);
+  const upload = local.status === "ready" ? local.upload : null;
+  const canDownloadCSV = upload !== null;
 
   function handleDownloadCSV() {
-    if (!preview || !mappings) return;
-    const { dataset } = cleanDataset(preview.dataset, mappings);
+    if (!upload) return;
+    const columnTypes = local.status === "ready" ? local.columnTypes : null;
+    const mappings = applyColumnTypes(inferColumnTypes(upload.dataset), columnTypes);
+    const { dataset } = cleanDataset(upload.dataset, mappings);
     const csv = serializeCSV(dataset);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `cleaned_${preview.originalFilename ?? "export.csv"}`;
+    a.download = `cleaned_${upload.originalFilename ?? "export.csv"}`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -106,7 +50,7 @@ export default function ReportSection({ projectId }: Props) {
       <div className="space-y-6">
         <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-sm text-zinc-500">
-            No analysis found — complete the analysis step first.
+            This project hasn&apos;t been analyzed yet.
           </p>
         </div>
         <Link
@@ -127,15 +71,17 @@ export default function ReportSection({ projectId }: Props) {
           <div>
             <p className="text-sm font-medium text-zinc-900">Cleaned CSV</p>
             <p className="text-xs text-zinc-400 mt-0.5">
-              {cleaning
-                ? `${cleaning.totalRows.toLocaleString()} rows · ${cleaning.totalChanges.toLocaleString()} change(s) applied`
-                : "Dataset with whitespace and invalid values fixed"}
+              {canDownloadCSV
+                ? `${analysis.cleaning.totalRows.toLocaleString()} rows · ${analysis.cleaning.totalChanges.toLocaleString()} change(s) applied`
+                : local.status === "loading"
+                  ? "Checking this device for your file…"
+                  : "Re-upload your file on this device to download it. Raw data is never stored on our servers."}
             </p>
           </div>
           <button
             type="button"
             onClick={handleDownloadCSV}
-            disabled={!preview || !mappings}
+            disabled={!canDownloadCSV}
             className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Download CSV
@@ -234,7 +180,12 @@ function QuantSummary({ quant }: { quant: QuantitativeAnalysis }) {
             <p className="text-xs font-medium text-zinc-700 mb-1">
               {r.columnName} — NPS
             </p>
-            <p className="text-2xl font-bold text-zinc-900">{r.score}</p>
+            <p className="text-2xl font-bold text-zinc-900">
+              {formatNpsScore(r.score)}{" "}
+              <span className="text-xs font-normal text-zinc-400">
+                (−100 to +100) · average answer {r.mean} / 10
+              </span>
+            </p>
             <p className="text-xs text-zinc-500">
               {r.promoterPct}% promoters · {r.passivePct}% passives ·{" "}
               {r.detractorPct}% detractors · {r.totalResponses.toLocaleString()}{" "}
