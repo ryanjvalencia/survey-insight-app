@@ -73,12 +73,12 @@ export default function HomePage() {
           </h1>
           <p className="text-xl text-zinc-500 mb-10 max-w-2xl mx-auto leading-relaxed">
             Upload a CSV, confirm your columns, and get charts, NPS scores,
-            text themes, and a PDF report — all in your browser, no account
-            required.
+            text themes, and a client-ready report. Your raw data stays in
+            your browser.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/projects/new"
+              href="/signup"
               className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-7 py-3 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
             >
               Analyze a CSV →
@@ -91,7 +91,7 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-zinc-400">
-            CSV up to 10 MB · 50,000 rows · no sign-up needed
+            CSV up to 10 MB · 50,000 rows · free account
           </p>
         </section>
 
@@ -143,7 +143,7 @@ export default function HomePage() {
               Drop your CSV and have a report in under five minutes.
             </p>
             <Link
-              href="/projects/new"
+              href="/signup"
               className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-7 py-3 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
             >
               Analyze a CSV →

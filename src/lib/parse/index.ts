@@ -138,6 +138,6 @@ function emptyDataset(warnings: string[]): Dataset {
  * Strips characters unsafe for use in Content-Disposition filenames.
  * Applied to originalFilename before it leaves this module.
  */
-function sanitizeFilename(name: string): string {
+export function sanitizeFilename(name: string): string {
   return name.replace(/[^\w.\-]/g, "_");
 }

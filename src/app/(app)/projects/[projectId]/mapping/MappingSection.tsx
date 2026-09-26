@@ -10,7 +10,7 @@ import { analyzeQuantitative } from "@/lib/analysis";
 import { analyzeText } from "@/lib/text";
 import { buildCharts } from "@/lib/charts";
 import { generateInsights } from "@/lib/insights";
-import { updateProjectStatus } from "@/lib/db/projects";
+import { markAnalyzed } from "../actions";
 
 const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
   () => () => {};
@@ -145,7 +145,9 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
     sessionStorage.setItem(`mapping:${projectId}`, JSON.stringify(finalMappings));
     sessionStorage.setItem(`cleaning:${projectId}`, JSON.stringify(cleaningResult.summary));
     sessionStorage.setItem(`analysis:${projectId}`, JSON.stringify({ quant, text, insights, charts }));
-    await updateProjectStatus(projectId, "analyzed").catch(() => {});
+    // Status is informational; analysis results are already stored locally,
+    // so a failed update shouldn't block the user from seeing them.
+    await markAnalyzed(projectId).catch(() => null);
     router.push(`/projects/${projectId}/analysis`);
   }
 

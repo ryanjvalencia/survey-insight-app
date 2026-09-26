@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DropZone, { type SelectedFile } from "@/components/upload/DropZone";
 import { parseCSV } from "@/lib/parse";
-import { saveDataset } from "@/lib/db/datasets";
-import { updateProjectStatus } from "@/lib/db/projects";
+import type { ParseResult } from "@/types";
+import { recordUpload } from "../actions";
 
 interface UploadSectionProps {
   projectId: string;
@@ -21,25 +21,34 @@ export default function UploadSection({ projectId }: UploadSectionProps) {
     if (!file) return;
     setLoading(true);
     setError(null);
+    let result: ParseResult;
     try {
       const text = await file.file.text();
-      const result = parseCSV(text, file.name);
+      result = parseCSV(text, file.name);
       sessionStorage.setItem(`preview:${projectId}`, JSON.stringify(result));
-
-      // Persist metadata only — raw rows stay in sessionStorage, never sent to DB
-      await saveDataset({
-        projectId,
-        originalFilename: result.originalFilename,
-        rowCount: result.dataset.rowCount,
-        columnCount: result.dataset.headers.length,
-      });
-      await updateProjectStatus(projectId, "uploaded");
-
-      router.push(`/projects/${projectId}/preview`);
     } catch {
       setError("Failed to read the file. Please try again.");
       setLoading(false);
+      return;
     }
+
+    // Persist metadata only — raw rows stay in sessionStorage, never sent to DB
+    const saved = await recordUpload({
+      projectId,
+      originalFilename: result.originalFilename,
+      rowCount: result.dataset.rowCount,
+      columnCount: result.dataset.headers.length,
+    }).catch(() => null);
+    if (!saved?.ok) {
+      setError(
+        saved?.error ??
+          "Couldn't reach the server. Check your connection and try again.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    router.push(`/projects/${projectId}/preview`);
   }
 
   return (

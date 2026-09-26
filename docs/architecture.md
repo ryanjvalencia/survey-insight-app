@@ -56,7 +56,11 @@ src/components/
 ```
 src/lib/
   supabase/
-    client.ts       Singleton Supabase browser/server client (anon key)
+    env.ts          Reads NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY
+    server.ts       createSupabaseServerClient() (request cookies) and getCurrentUser()
+    session.ts      updateSession(): refreshes the auth cookie and applies auth redirects
+  auth/             readCredentials, validateCredentials, safeRedirectPath (open-redirect guard)
+  ids/              isUuid
   db/
     projects.ts     CRUD for the projects table: createProject, getProject, listProjects, updateProjectStatus
     datasets.ts     Insert for the datasets table: saveDataset
@@ -75,6 +79,18 @@ src/types/
 ```
 
 **Convention:** All business logic lives in `src/lib/`. React components import from `src/lib/` but never define data logic themselves.
+
+---
+
+## Authentication
+
+Supabase email + password auth via `@supabase/ssr` (session stored in cookies so server code can read it).
+
+- `src/proxy.ts` (Next.js 16's replacement for `middleware.ts`) calls `updateSession` on every non-static request. It refreshes the session and redirects signed-out users away from `/dashboard` and `/projects/**` to `/login?next=…`, and signed-in users away from `/login` and `/signup`.
+- `(app)/layout.tsx` re-checks the user server-side (defense in depth) and passes the email to `Nav`, which has the sign-out button.
+- `(auth)/` holds `/login` and `/signup` plus the `login`, `signup`, `logout` Server Actions. Login errors never reveal whether an email exists. The `next` redirect target is sanitized with `safeRedirectPath`.
+- `projects/[projectId]/layout.tsx` 404s for malformed ids and for projects the user doesn't own (RLS returns no row).
+- Email confirmation is currently **off** in the Supabase dashboard; `signup` handles both modes.
 
 ---
 
@@ -97,18 +113,18 @@ Components read these via `useSyncExternalStore` (hydration-safe; avoids setStat
 - `projects` table — project name, status (`created` → `uploaded` → `analyzed`), timestamps
 - `datasets` table — row count, column count, sanitized original filename; linked to project
 
-**Status flow:** `createProject` (Server Action in `projects/new`) → `saveDataset` + `updateProjectStatus("uploaded")` (in `UploadSection`) → `updateProjectStatus("analyzed")` (in `MappingSection` after full pipeline).
+**Status flow:** `createProject` (Server Action in `projects/new`) → `recordUpload` (Server Action, called by `UploadSection`) → `markAnalyzed` (Server Action, called by `MappingSection` after the full pipeline).
 
-**Server Actions:** `projects/new/page.tsx` defines an inline Server Action (`"use server"`) to create a project and redirect. No Route Handlers are used for persistence.
+**Server-only database access:** The browser never talks to Supabase directly. All queries go through Server Components and Server Actions using `createSupabaseServerClient()`, which carries the signed-in user's session cookie, so RLS applies to every query. `src/lib/db/*` functions take that client as their first argument. Server Actions re-validate everything from the browser (`parseDatasetMeta`, `isUuid`) before writing.
 
-**RLS:** Both tables have RLS enabled. Policies are currently permissive (`using (true)`) — anyone with the anon key can read and write every row. They must be replaced with `auth.uid() = user_id` row-scoped policies when auth is added.
+**RLS:** Every row belongs to one user. `projects.user_id` defaults to `auth.uid()` (the app never sends it) and policies restrict select/insert/update/delete to the owner; `datasets` rows are allowed only when their parent project is owned by the caller. Signed-out requests match no policy. Migrations live in `supabase/migrations/` and are run by hand in the Supabase SQL Editor.
 
 **Database schema (current):**
 
 ```sql
 create table projects (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users,   -- not yet populated; becomes NOT NULL with auth
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
   name text not null,
   status text not null default 'created',
   created_at timestamptz default now()
@@ -125,6 +141,7 @@ create table datasets (
 
 alter table projects enable row level security;
 alter table datasets enable row level security;
+-- Owner-only policies: see supabase/migrations/20260926000000_user_scoped_rls.sql
 ```
 
 ---

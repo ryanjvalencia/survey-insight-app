@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import { listProjects } from "@/lib/db/projects";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Project } from "@/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -30,10 +31,11 @@ function resumeHref(project: Project): string {
 
 export default async function DashboardPage() {
   let projects: Project[] = [];
+  let loadFailed = false;
   try {
-    projects = await listProjects();
+    projects = await listProjects(await createSupabaseServerClient());
   } catch {
-    // Supabase unavailable — show empty state
+    loadFailed = true;
   }
 
   return (
@@ -51,7 +53,14 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {projects.length === 0 ? (
+      {loadFailed ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          Couldn&apos;t load your projects. Refresh the page to try again.
+        </p>
+      ) : projects.length === 0 ? (
         <div className="mt-4 rounded-lg border border-dashed border-zinc-200 py-20 text-center">
           <p className="text-sm text-zinc-500 mb-4">No projects yet.</p>
           <Link

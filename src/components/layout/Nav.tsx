@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/app/(auth)/actions";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Projects" },
 ];
 
-export default function Nav() {
+export default function Nav({ email }: { email: string | null }) {
   const pathname = usePathname();
 
   return (
@@ -42,6 +43,21 @@ export default function Nav() {
                 </li>
               );
             })}
+            {email && (
+              <li className="hidden sm:block ml-2 max-w-48 truncate text-xs text-zinc-400" title={email}>
+                {email}
+              </li>
+            )}
+            <li>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 rounded-md text-sm text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
+                >
+                  Sign out
+                </button>
+              </form>
+            </li>
           </ul>
         </nav>
       </div>

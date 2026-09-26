@@ -30,6 +30,8 @@ CI (`.github/workflows/ci.yml`) runs the same four on every PR and on push to `m
 
 - Business/data logic lives in `src/lib/` as pure, tested functions. UI lives in `src/app/` and `src/components/` and only imports from `src/lib/`.
 - Shared domain types go in `src/types/index.ts`.
+- Database access is server-only: Server Components / Server Actions with `createSupabaseServerClient()` from `src/lib/supabase/server.ts`, passed into `src/lib/db/*` functions. Never query Supabase from client components. Re-validate all browser input in Server Actions.
+- Schema changes go in `supabase/migrations/` as idempotent SQL; the human runs them in the Supabase SQL Editor.
 - Server Components by default; `"use client"` only when hooks or browser APIs are needed.
 - `next/link` for internal navigation.
 - Every new `src/lib/` function gets at least one unit test, using synthetic fixtures only.

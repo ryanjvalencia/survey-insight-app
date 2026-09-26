@@ -7,6 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+- Per-user data ownership: `projects.user_id` defaults to `auth.uid()` and is required; permissive RLS replaced with owner-only policies on `projects` and `datasets` (`supabase/migrations/20260926000000_user_scoped_rls.sql`). The migration deletes pre-auth ownerless projects.
+- All database access moved server-side (Server Components / Server Actions); the browser no longer queries Supabase. Server Actions re-validate upload metadata (`parseDatasetMeta`) and project ids (`isUuid`).
+- Post-login redirect targets are sanitized (`safeRedirectPath`) to prevent open redirects.
+
+### Added
+- Email + password authentication with `@supabase/ssr` 0.12.7 — the official Supabase package for cookie-based sessions in Next.js server code. `/login` and `/signup` pages, sign-out in the nav, `src/proxy.ts` protecting `/dashboard` and `/projects/**`.
+- Project pages 404 for malformed ids and projects the user doesn't own.
+
+### Fixed
+- Next.js upgraded 16.2.6 → 16.3.6: Turbopack dev server on Windows spawned unbounded PostCSS workers (~2,000 processes, ~18 GB RAM), freezing the machine.
+- Upload no longer reports a database failure as "Failed to read the file".
+- Dashboard shows an error instead of an empty project list when projects fail to load.
+
 ### Removed
 - Multi-agent orchestrator scaffolding (`AGENTS.md`, agent operating-system/prompt docs, issue generator script, `/implement-issue` and `/review-pr` skills, agent-task issue template, `src/lib/data` stub)
 
