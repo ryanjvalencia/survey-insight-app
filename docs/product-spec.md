@@ -105,8 +105,8 @@ created_at  timestamptz
 ## Privacy contract
 
 - Raw uploaded file content is never persisted to the database.
-- Only aggregated analysis results (counts, averages, distributions) are stored.
-- Open-text responses are never stored in the database in V1.
+- Only aggregated analysis results (counts, averages, distributions) are stored. Category distributions keep the top 20 values per column.
+- Open-text responses are never stored in the database in V1. Only aggregates derived from them are kept: length statistics, sentiment counts, and the top 20 words.
 - Row-level security (RLS) ensures users can only access their own data.
 - No user data is sent to an AI API in V1 (all analysis is local/server-side).
 

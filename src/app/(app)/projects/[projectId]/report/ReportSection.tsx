@@ -2,23 +2,20 @@
 
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import type { ParseResult, ColumnMapping, CleaningSummary } from "@/types";
+import type { ParseResult, ColumnMapping } from "@/types";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 import type { InsightReport } from "@/lib/insights";
+import type { StoredAnalysis } from "@/lib/results";
 import { cleanDataset } from "@/lib/clean";
 import { serializeCSV } from "@/lib/export";
 
 // ── sessionStorage helpers ────────────────────────────────────────────────────
+// Raw rows and mappings live only in this browser tab; they're needed to
+// rebuild the cleaned CSV and are never sent to the server.
 
 const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
   () => () => {};
-
-type AnalysisPayload = {
-  quant: QuantitativeAnalysis;
-  text: TextAnalysis;
-  insights: InsightReport;
-};
 
 const previewCache = new Map<
   string,
@@ -27,14 +24,6 @@ const previewCache = new Map<
 const mappingCache = new Map<
   string,
   { raw: string | null; result: ColumnMapping[] | null }
->();
-const cleaningCache = new Map<
-  string,
-  { raw: string | null; result: CleaningSummary | null }
->();
-const analysisCache = new Map<
-  string,
-  { raw: string | null; result: AnalysisPayload | null }
 >();
 
 function readStored<T>(
@@ -60,9 +49,10 @@ function readStored<T>(
 
 interface Props {
   projectId: string;
+  analysis: StoredAnalysis | null;
 }
 
-export default function ReportSection({ projectId }: Props) {
+export default function ReportSection({ projectId, analysis }: Props) {
   const preview = useSyncExternalStore(
     subscribe,
     () => readStored<ParseResult>(`preview:${projectId}`, previewCache),
@@ -73,16 +63,7 @@ export default function ReportSection({ projectId }: Props) {
     () => readStored<ColumnMapping[]>(`mapping:${projectId}`, mappingCache),
     () => null,
   );
-  const cleaning = useSyncExternalStore(
-    subscribe,
-    () => readStored<CleaningSummary>(`cleaning:${projectId}`, cleaningCache),
-    () => null,
-  );
-  const analysis = useSyncExternalStore(
-    subscribe,
-    () => readStored<AnalysisPayload>(`analysis:${projectId}`, analysisCache),
-    () => null,
-  );
+  const canDownloadCSV = Boolean(preview && mappings);
 
   function handleDownloadCSV() {
     if (!preview || !mappings) return;
@@ -106,7 +87,7 @@ export default function ReportSection({ projectId }: Props) {
       <div className="space-y-6">
         <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-sm text-zinc-500">
-            No analysis found — complete the analysis step first.
+            This project hasn&apos;t been analyzed yet.
           </p>
         </div>
         <Link
@@ -127,15 +108,15 @@ export default function ReportSection({ projectId }: Props) {
           <div>
             <p className="text-sm font-medium text-zinc-900">Cleaned CSV</p>
             <p className="text-xs text-zinc-400 mt-0.5">
-              {cleaning
-                ? `${cleaning.totalRows.toLocaleString()} rows · ${cleaning.totalChanges.toLocaleString()} change(s) applied`
-                : "Dataset with whitespace and invalid values fixed"}
+              {canDownloadCSV
+                ? `${analysis.cleaning.totalRows.toLocaleString()} rows · ${analysis.cleaning.totalChanges.toLocaleString()} change(s) applied`
+                : "Re-upload your file in this tab to download it. Raw data is never stored on our servers."}
             </p>
           </div>
           <button
             type="button"
             onClick={handleDownloadCSV}
-            disabled={!preview || !mappings}
+            disabled={!canDownloadCSV}
             className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Download CSV

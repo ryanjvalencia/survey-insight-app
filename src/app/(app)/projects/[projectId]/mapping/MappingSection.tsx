@@ -10,7 +10,8 @@ import { analyzeQuantitative } from "@/lib/analysis";
 import { analyzeText } from "@/lib/text";
 import { buildCharts } from "@/lib/charts";
 import { generateInsights } from "@/lib/insights";
-import { markAnalyzed } from "../actions";
+import { buildStoredAnalysis } from "@/lib/results";
+import { saveAnalysis } from "../actions";
 
 const subscribe: Parameters<typeof import("react").useSyncExternalStore>[0] =
   () => () => {};
@@ -126,6 +127,8 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
   const [overrides, setOverrides] = useState<Map<string, ColumnType>>(
     new Map(),
   );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function handleTypeChange(columnName: string, newType: ColumnType) {
     setOverrides((prev) => new Map(prev).set(columnName, newType));
@@ -142,12 +145,28 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
     const text = analyzeText(cleaningResult.dataset, finalMappings);
     const insights = generateInsights(quant, text);
     const charts = buildCharts(quant, text);
+    // Mappings stay in the tab: the report's cleaned-CSV download re-runs
+    // cleaning on the raw rows, which are never sent to the server.
     sessionStorage.setItem(`mapping:${projectId}`, JSON.stringify(finalMappings));
-    sessionStorage.setItem(`cleaning:${projectId}`, JSON.stringify(cleaningResult.summary));
-    sessionStorage.setItem(`analysis:${projectId}`, JSON.stringify({ quant, text, insights, charts }));
-    // Status is informational; analysis results are already stored locally,
-    // so a failed update shouldn't block the user from seeing them.
-    await markAnalyzed(projectId).catch(() => null);
+
+    setSaving(true);
+    setError(null);
+    const payload = buildStoredAnalysis({
+      cleaning: cleaningResult.summary,
+      quant,
+      text,
+      insights,
+      charts,
+    });
+    const saved = await saveAnalysis(projectId, payload).catch(() => null);
+    if (!saved?.ok) {
+      setError(
+        saved?.error ??
+          "Couldn't reach the server. Check your connection and try again.",
+      );
+      setSaving(false);
+      return;
+    }
     router.push(`/projects/${projectId}/analysis`);
   }
 
@@ -252,6 +271,12 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
         </table>
       </div>
 
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+
       <div className="flex items-center justify-between pt-2">
         <Link
           href={`/projects/${projectId}/preview`}
@@ -262,9 +287,10 @@ export default function MappingSection({ projectId }: MappingSectionProps) {
         <button
           type="button"
           onClick={handleNext}
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+          disabled={saving}
+          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next: Analyze →
+          {saving ? "Analyzing…" : "Next: Analyze →"}
         </button>
       </div>
     </div>
