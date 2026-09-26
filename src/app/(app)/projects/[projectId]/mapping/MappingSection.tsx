@@ -20,6 +20,9 @@ import { getBrowserStore } from "@/lib/localdata/indexeddb";
 import { buildStoredAnalysis } from "@/lib/results";
 import LocalDataNotice from "@/components/localdata/LocalDataNotice";
 import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
+import Icon from "@/components/ui/Icon";
+import { NAV_BACK, NAV_FORWARD } from "@/components/ui/PageTransition";
+import { btnPrimary, btnSecondary, card } from "@/components/ui/styles";
 import { saveAnalysis } from "../actions";
 
 const SAMPLE_COUNT = 3;
@@ -74,20 +77,10 @@ function confidenceBadge(confidence: number): {
   className: string;
 } {
   if (confidence >= 0.85)
-    return {
-      label: "high",
-      className:
-        "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    };
+    return { label: "Confident", className: "bg-good-bg text-good-text" };
   if (confidence >= 0.6)
-    return {
-      label: "med",
-      className: "bg-amber-50 text-amber-700 border border-amber-200",
-    };
-  return {
-    label: "low",
-    className: "bg-red-50 text-red-600 border border-red-200",
-  };
+    return { label: "Likely", className: "bg-warning-bg text-warning-text" };
+  return { label: "Please check", className: "bg-critical-bg text-critical-text" };
 }
 
 interface MappingSectionProps {
@@ -172,82 +165,83 @@ function MappingEditor({
       setSaving(false);
       return;
     }
-    router.push(`/projects/${projectId}/analysis`);
+    router.push(`/projects/${projectId}/analysis`, { transitionTypes: NAV_FORWARD });
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-zinc-200 overflow-x-auto">
-        <table className="w-full text-sm min-w-max">
-          <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-zinc-500 whitespace-nowrap">
-                Column
-              </th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-zinc-500 whitespace-nowrap">
-                Sample values
-              </th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-zinc-500 whitespace-nowrap">
-                Inferred type
-              </th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-zinc-500 whitespace-nowrap">
-                Your choice
-              </th>
+    <div className="space-y-5 animate-fade-up">
+      <div className={`${card} overflow-x-auto`}>
+        <table className="w-full min-w-max text-sm">
+          <thead className="bg-surface-muted">
+            <tr>
+              {["Column", "Sample values", "We detected", "Treat as"].map((h) => (
+                <th
+                  key={h}
+                  scope="col"
+                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold text-ink-2"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody>
-            {mappings.map((m, i) => {
+          <tbody className="divide-y divide-line-soft">
+            {mappings.map((m) => {
               const samples = getSamples(upload.dataset, m.name);
               const badge = confidenceBadge(m.confidence);
-              const effectiveType = m.type;
-              const userChanged = effectiveType !== m.inferredType;
+              const userChanged = m.type !== m.inferredType;
               return (
-                <tr
-                  key={m.name}
-                  className={`border-b border-zinc-100 last:border-0 ${i % 2 !== 0 ? "bg-zinc-50/50" : ""}`}
-                >
-                  <td className="px-4 py-2.5 text-xs font-medium text-zinc-800 whitespace-nowrap">
-                    {m.name}
-                  </td>
-                  <td className="px-4 py-2.5 max-w-xs">
+                <tr key={m.name} className="transition-colors hover:bg-surface-muted">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-ink">{m.name}</td>
+                  <td className="max-w-xs px-4 py-3">
                     {samples.length > 0 ? (
-                      <span className="text-xs text-zinc-500">
-                        {samples.join(", ")}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {samples.map((v, i) => (
+                          <span
+                            key={i}
+                            className="max-w-40 truncate rounded-md bg-surface-sunken px-1.5 py-0.5 text-xs text-ink-2"
+                          >
+                            {v}
+                          </span>
+                        ))}
+                      </div>
                     ) : (
-                      <span className="text-xs text-zinc-300">—</span>
+                      <span className="text-xs text-ink-3">No values</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600">
-                        {TYPE_LABELS[m.inferredType]}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}
-                      >
+                      <span className="text-sm text-ink-2">{TYPE_LABELS[m.inferredType]}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${badge.className}`}>
                         {badge.label}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <select
-                      value={effectiveType}
-                      onChange={(e) =>
-                        handleTypeChange(m.name, e.target.value as ColumnType)
-                      }
-                      className={`rounded border text-xs px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400 ${
-                        userChanged
-                          ? "border-blue-400 text-blue-800"
-                          : "border-zinc-200 text-zinc-700"
-                      }`}
-                    >
-                      {ALL_COLUMN_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {TYPE_LABELS[t]}
-                        </option>
-                      ))}
-                    </select>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={m.type}
+                        aria-label={`Type for ${m.name}`}
+                        onChange={(e) => handleTypeChange(m.name, e.target.value as ColumnType)}
+                        className={[
+                          "rounded-lg border bg-surface px-2.5 py-1.5 text-sm transition-colors focus:outline-none focus:ring-4 focus:ring-brand-100",
+                          userChanged
+                            ? "border-brand-500 text-brand-800 font-medium"
+                            : "border-line text-ink hover:border-line-strong",
+                        ].join(" ")}
+                      >
+                        {ALL_COLUMN_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {TYPE_LABELS[t]}
+                          </option>
+                        ))}
+                      </select>
+                      {userChanged && (
+                        <span className="animate-pop rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800">
+                          Changed
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -257,25 +251,32 @@ function MappingEditor({
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="flex animate-fade-up items-start gap-3 rounded-xl bg-critical-bg px-4 py-3 text-sm text-critical-text ring-1 ring-critical/20"
+        >
+          <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{error}</p>
+        </div>
       )}
 
       <div className="flex items-center justify-between pt-2">
-        <Link
-          href={`/projects/${projectId}/preview`}
-          className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-        >
-          ← Back to preview
+        <Link href={`/projects/${projectId}/preview`} transitionTypes={NAV_BACK} className={btnSecondary}>
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          Back to preview
         </Link>
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={saving}
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Analyzing…" : "Next: Analyze →"}
+        <button type="button" onClick={handleNext} disabled={saving} className={btnPrimary}>
+          {saving ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Analyzing…
+            </>
+          ) : (
+            <>
+              <Icon name="sparkle" className="h-4 w-4" />
+              Run analysis
+            </>
+          )}
         </button>
       </div>
     </div>

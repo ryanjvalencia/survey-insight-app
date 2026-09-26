@@ -8,6 +8,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Key insights spotlight on the analysis page: one insight at a time in large type with a featured figure, tone-coded (strength / needs attention / observation), arrow buttons, progress segments, keyboard and swipe navigation, and an "All" grid view.
+- Column meaning inference (`src/lib/insights/columns.ts`): readable phrases instead of quoted column names ("annual revenue"), and money columns (revenue, income, salary, price, cost, spend, …) formatted as dollars with commas. Full-question headers are left as written.
+- `formatCurrency` in `src/lib/format`.
+- Redesign: design tokens (warm neutral surfaces, brand blue shared with charts, validated colorblind-safe chart palette, reserved status colors), Inter font, shared UI recipes and icon set, and a documented design system (`docs/architecture.md`).
+- Real charts without a chart library: histograms with readable compact axis labels (e.g. 25.5K), rating distributions, donut charts (top 5 + Other, legend with values), a top-words bar list, and an NPS meter that places the score on a −100…+100 benchmark track with the promoter/passive/detractor split. Every chart has hover/focus tooltips and a "Show data table" view.
+- Motion: animated upload drop zone and a live processing checklist, directional page transitions through the workflow (React View Transitions) and crossfades elsewhere, staggered card and chart entrances; all disabled for reduced-motion users.
+- Redesigned landing page (consultant-focused), split-screen sign in/up, project card grid, workflow stepper, KPI tiles and insight cards on the analysis page, and a branded printable report.
+- `src/lib/format`: `compactNumber`, `formatCount`, `formatNumber`, `formatPercent`, `niceTicks`, `humanizeColumn`.
 - `scripts/generate-test-csv.mjs`: generates synthetic, deliberately messy survey CSVs (10k, 50k, 50,001 rows by default, or any row count) into gitignored `test-data/`.
 - Analysis results are saved to the account (`analysis_results` table, `supabase/migrations/20260926010000_analysis_results.sql`), so reopening a project from the dashboard shows its analysis and report after the tab is closed. Re-analyzing replaces the saved result.
 - `src/lib/results`: `buildStoredAnalysis` / `parseStoredAnalysis` — versioned payload, server-side validation, 512 KB limit. `src/lib/db/analysis.ts`: `saveAnalysisResult`, `getAnalysisResult`.
@@ -32,6 +40,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/architecture.md` — route structure, component conventions, module layout
 
 ### Changed
+- Insights rewritten in plain language that leads with meaning and a next step: headline + explanation + featured metric, sorted most important first. NPS is framed as "would recommend vs. wouldn't" with its benchmark band; ratings report top-box/bottom-box shares on the inferred scale; numbers lead with the typical (median) value, rounded in headlines, and flag skewed averages; evenly split categories are combined into one "balanced sample" insight; comment sentiment and top words are one insight.
+- Insights are regenerated from stored aggregates when the analysis and report pages load, so existing projects show the new wording without re-running.
+- Pie charts show at most 6 slices (top 5 + Other, derived from the column total) instead of 11.
 - Analysis and report pages load results on the server; `AnalysisDashboard` is now a Server Component.
 - "Next: Analyze" shows an error and stays on the page if results can't be saved, instead of continuing silently.
 - The report explains that the cleaned CSV needs the file re-uploaded when the raw data isn't in the current tab (raw rows are never stored server-side).
@@ -44,6 +55,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` — replaced Next.js boilerplate with project-specific setup instructions
 
 ### Fixed
+- The global stylesheet forced Arial over the loaded font and applied a partial dark-mode background; both removed.
 - Numeric histograms showed 0 in every bin: bins were built from min/max only with hard-coded zero counts. Analysis now counts values into 10 equal-width bins (`histogramBins`, stored as `NumericResult.bins`) and charts use those counts. Labels use thousands separators for large values. Projects analyzed before this fix need re-analyzing to populate their histograms.
 - Columns with currency or thousands-separated values (`$1,234`, `€99.50`, `12,000`) are now detected as Numeric instead of Unknown.
 - Column type choices on the mapping step are saved on every change and restored when returning to the step (previously lost when navigating between steps).

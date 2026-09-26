@@ -1,33 +1,31 @@
 # Roadmap — Survey Insight
 
-Target audience: consultants analyzing client survey data. See `docs/product-spec.md`.
+Target audience: consultants analyzing client survey data (stage 1). Stage 2 extends to small businesses analyzing Yelp / Google reviews. See `docs/product-spec.md`.
 
-## Done — MVP pipeline (formerly issues #1–20)
+## Done
 
-- [x] Landing page, dashboard shell, project creation
-- [x] CSV upload with client-side validation (10 MB / 50k rows)
-- [x] RFC 4180 CSV parsing and 25-row preview
-- [x] Column type inference and user-confirmed column mapping
-- [x] Schema validation and data cleaning pipeline with cleaning summary
-- [x] Quantitative analysis (NPS, rating, numeric, category) and text analysis (word frequency, length, proxy sentiment)
-- [x] Chart specs, rule-based insights, analysis dashboard
-- [x] Cleaned CSV export and printable report
-- [x] Supabase persistence for project and dataset metadata
+- [x] MVP pipeline (formerly issues #1–20): CSV upload and validation, parsing and preview, column type inference and mapping, cleaning, quantitative and text analysis, charts, rule-based insights, CSV export, printable report, Supabase metadata
+- [x] Cleanup — removed orchestrator-era scaffolding
+- [x] Auth and data ownership — email + password auth, owner-only RLS, server-side database access
+- [x] Persist analysis results — aggregated results only; raw rows stay on the device (IndexedDB, 7-day expiry, cleared on sign out)
+- [x] Next.js 16.3 (fixes the Turbopack PostCSS worker leak on Windows)
+- [x] Design system and redesign — tokens, Inter, hand-built charts, NPS benchmark meter, motion and page transitions
+- [x] Plain-language key insights with a spotlight carousel and column-meaning inference
 
-## Next — path to launch
+## Next
 
-1. [x] **Cleanup and merge** — remove orchestrator-era scaffolding, merge `agent-factory` into `main`
-2. [x] **Auth and data ownership**
-   - Supabase email + password auth; protect `(app)` routes
-   - Add `user_id` to `projects`; replace permissive RLS with `auth.uid() = user_id` policies
-   - Check the uploaded dataset against the logged-in user before saving
-   - Don't let a failing database call in upload look like a file read error
-3. [x] **Persist analysis results** — store aggregated results (no raw rows) so reopening a project from the dashboard works after the tab is closed
-4. [ ] **Consultant-ready presentation**
-   - Visual polish and branding across the app
-   - Real chart library for the dashboard
-   - Client-ready PDF report (branding, cover page, clean layout)
-   - Date / time-series analysis (in spec, not yet built)
-5. [ ] **Nice to have** — XLSX import; AI-generated summaries behind a feature flag with sanitization
-6. [ ] **Security and privacy review** against `docs/security-privacy.md`
-7. [ ] **Deployment** (Vercel) — requires human approval
+1. [ ] **Downloadable report cleanup** — print layout, page breaks, charts in the report, branding
+2. [ ] **Sentiment analysis testing** — measure the word-list sentiment against labeled review text before stage 2
+3. [ ] **Separating consultant and small-business experiences** — post-sign-in home that routes to each, or a "survey vs. reviews" choice at upload
+4. [ ] **Time-series analysis** — responses and scores over time for date columns
+5. [ ] **XLSX import**
+6. [ ] **AI insights behind a feature flag** — with a sanitization layer; see `docs/security-privacy.md`
+7. [ ] **Security and privacy review** — against `docs/security-privacy.md`, plus `npm audit`
+8. [ ] **Delete and rename projects**
+9. [ ] **Animation and design polish**
+10. [ ] **Better project library** — search, sort, filter, recent activity
+
+## Before launch
+
+- [ ] Turn Supabase email confirmation back on; password reset
+- [ ] Deployment (Vercel) — requires human approval

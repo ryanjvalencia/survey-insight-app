@@ -3,6 +3,7 @@ import type {
   RatingResult,
   NumericResult,
   CategoryResult,
+  HistogramBin,
   QuantitativeAnalysis,
 } from "@/lib/analysis";
 import type { TextColumnAnalysis, TextAnalysis } from "@/lib/text";
@@ -47,6 +48,8 @@ export interface HistogramChart {
   columnName: string;
   title: string;
   data: BarDataPoint[];
+  /** Exact bin edges and counts (absent in results saved before bins existed). */
+  bins?: HistogramBin[];
   mean: number;
   median: number;
 }
@@ -143,6 +146,7 @@ function numericHistogram(r: NumericResult): HistogramChart {
     type: "histogram",
     columnName: r.columnName,
     title: `${r.columnName} distribution`,
+    bins,
     data: bins.map((b) => ({
       label: b.lo === b.hi ? formatBinEdge(b.lo) : `${formatBinEdge(b.lo)}–${formatBinEdge(b.hi)}`,
       value: b.count,
@@ -152,11 +156,19 @@ function numericHistogram(r: NumericResult): HistogramChart {
   };
 }
 
+/**
+ * Most slices a pie shows. Beyond this, the smallest categories fold into
+ * "Other" — past ~6 segments slices become too thin to compare.
+ */
+export const MAX_PIE_SLICES = 6;
+
 function categoryPie(r: CategoryResult): PieChart {
-  const topN = r.frequencies.slice(0, 10);
-  const otherCount = r.frequencies
-    .slice(10)
-    .reduce((acc, f) => acc + f.count, 0);
+  const fitsAll = r.frequencies.length <= MAX_PIE_SLICES;
+  const topN = fitsAll ? r.frequencies : r.frequencies.slice(0, MAX_PIE_SLICES - 1);
+  const shown = topN.reduce((acc, f) => acc + f.count, 0);
+  // Derive "Other" from the column total so it stays correct even when the
+  // frequency list was truncated for storage.
+  const otherCount = Math.max(0, r.totalResponses - shown);
   const data: BarDataPoint[] = topN.map((f) => ({
     label: f.value,
     value: f.count,

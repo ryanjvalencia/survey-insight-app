@@ -1,5 +1,8 @@
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import PageTransition, { NAV_BACK, NAV_FORWARD } from "@/components/ui/PageTransition";
+import Icon from "@/components/ui/Icon";
+import { btnPrimary, btnSecondary } from "@/components/ui/styles";
 import PreviewTable from "./PreviewTable";
 
 export default async function PreviewPage({
@@ -10,28 +13,35 @@ export default async function PreviewPage({
   const { projectId } = await params;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <PageHeader
-        title="Preview data"
-        description="Review the first 25 rows to confirm the file parsed correctly."
-      />
+    <PageTransition>
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-10">
+        <PageHeader
+          eyebrow="Step 2 of 5"
+          title="Preview data"
+          description="Review the first 25 rows to confirm the file parsed correctly."
+        />
 
-      <PreviewTable projectId={projectId} />
+        <PreviewTable projectId={projectId} />
 
-      <div className="mt-6 flex justify-between">
-        <Link
-          href={`/projects/${projectId}/upload`}
-          className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-        >
-          ← Re-upload
-        </Link>
-        <Link
-          href={`/projects/${projectId}/mapping`}
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-        >
-          Next: Map columns →
-        </Link>
+        <div className="mt-8 flex justify-between">
+          <Link
+            href={`/projects/${projectId}/upload`}
+            transitionTypes={NAV_BACK}
+            className={btnSecondary}
+          >
+            <Icon name="arrowLeft" className="h-4 w-4" />
+            Re-upload
+          </Link>
+          <Link
+            href={`/projects/${projectId}/mapping`}
+            transitionTypes={NAV_FORWARD}
+            className={btnPrimary}
+          >
+            Next: Check columns
+            <Icon name="arrowRight" className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

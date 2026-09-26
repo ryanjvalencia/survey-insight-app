@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import PageTransition from "@/components/ui/PageTransition";
 import MappingSection from "./MappingSection";
 
 export default async function MappingPage({
@@ -9,12 +10,15 @@ export default async function MappingPage({
   const { projectId } = await params;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <PageHeader
-        title="Map columns"
-        description="Review the inferred column types and correct any that are wrong before analysis."
-      />
-      <MappingSection projectId={projectId} />
-    </div>
+    <PageTransition>
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-10">
+        <PageHeader
+          eyebrow="Step 3 of 5"
+          title="Check column types"
+          description="We detected what each column contains. Correct anything that looks wrong — your choices are saved as you go."
+        />
+        <MappingSection projectId={projectId} />
+      </div>
+    </PageTransition>
   );
 }

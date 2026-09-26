@@ -2,6 +2,9 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import Icon from "@/components/ui/Icon";
+import PageTransition, { NAV_FORWARD } from "@/components/ui/PageTransition";
+import { btnPrimary, card } from "@/components/ui/styles";
 import { listProjects } from "@/lib/db/projects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Project } from "@/types";
@@ -13,6 +16,15 @@ const STATUS_LABELS: Record<string, string> = {
   mapped: "Mapped",
   analyzed: "Analyzed",
   completed: "Completed",
+};
+
+const STATUS_STYLE: Record<string, { pill: string; progress: number }> = {
+  created: { pill: "bg-surface-sunken text-ink-2", progress: 10 },
+  uploaded: { pill: "bg-brand-50 text-brand-800", progress: 35 },
+  previewed: { pill: "bg-brand-50 text-brand-800", progress: 45 },
+  mapped: { pill: "bg-brand-50 text-brand-800", progress: 65 },
+  analyzed: { pill: "bg-good-bg text-good-text", progress: 90 },
+  completed: { pill: "bg-good-bg text-good-text", progress: 100 },
 };
 
 function resumeHref(project: Project): string {
@@ -39,60 +51,86 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <div className="flex items-start justify-between">
+    <PageTransition>
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-10">
         <PageHeader
+          eyebrow="Workspace"
           title="Projects"
-          description="Each project is one survey or feedback dataset."
+          description="Each project is one survey or feedback dataset. Pick up where you left off, or start a new analysis."
+          actions={
+            projects.length > 0 ? (
+              <Link href="/projects/new" transitionTypes={NAV_FORWARD} className={btnPrimary}>
+                <Icon name="plus" className="h-4 w-4" />
+                New project
+              </Link>
+            ) : undefined
+          }
         />
-        <Link
-          href="/projects/new"
-          className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors shrink-0"
-        >
-          New project
-        </Link>
-      </div>
 
-      {loadFailed ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          Couldn&apos;t load your projects. Refresh the page to try again.
-        </p>
-      ) : projects.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-zinc-200 py-20 text-center">
-          <p className="text-sm text-zinc-500 mb-4">No projects yet.</p>
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+        {loadFailed ? (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-xl bg-critical-bg px-4 py-3 text-sm text-critical-text ring-1 ring-critical/20"
           >
-            Create your first project
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-4 divide-y divide-zinc-100 rounded-lg border border-zinc-200">
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={resumeHref(project)}
-              className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 transition-colors"
-            >
-              <div>
-                <p className="text-sm font-medium text-zinc-900">
-                  {project.name}
-                </p>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <span className="text-xs text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">
-                {STATUS_LABELS[project.status] ?? project.status}
-              </span>
+            <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
+            Couldn&apos;t load your projects. Refresh the page to try again.
+          </div>
+        ) : projects.length === 0 ? (
+          <div className={`${card} animate-fade-up px-6 py-16 text-center`}>
+            <div className="mx-auto mb-5 flex h-14 w-14 animate-float items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
+              <Icon name="chart" className="h-7 w-7" />
+            </div>
+            <p className="text-lg font-semibold text-ink">Start your first analysis</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-ink-2">
+              Upload a survey export and get cleaned data, charts, NPS, and a client-ready report in a few minutes.
+            </p>
+            <Link href="/projects/new" transitionTypes={NAV_FORWARD} className={`${btnPrimary} mt-6`}>
+              <Icon name="plus" className="h-4 w-4" />
+              Create a project
             </Link>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project, i) => {
+              const status = STATUS_STYLE[project.status] ?? STATUS_STYLE.created;
+              return (
+                <li key={project.id} className="animate-fade-up" style={{ animationDelay: `${i * 40}ms` }}>
+                  <Link
+                    href={resumeHref(project)}
+                    transitionTypes={NAV_FORWARD}
+                    className={`${card} group flex h-full flex-col p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-raised hover:ring-brand-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700 transition-colors group-hover:bg-brand-100">
+                        <Icon name="folder" className="h-5 w-5" />
+                      </span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${status.pill}`}>
+                        {STATUS_LABELS[project.status] ?? project.status}
+                      </span>
+                    </div>
+                    <p className="mt-4 line-clamp-2 text-base font-semibold text-ink">{project.name}</p>
+                    <p className="mt-1 text-xs text-ink-3">
+                      Created {new Date(project.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                    <div className="mt-5 flex items-center gap-3">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken">
+                        <div
+                          className="h-full rounded-full bg-brand-500 transition-[width] duration-500"
+                          style={{ width: `${status.progress}%` }}
+                        />
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 opacity-0 transition-opacity group-hover:opacity-100">
+                        Open
+                        <Icon name="arrowRight" className="h-3.5 w-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </PageTransition>
   );
 }

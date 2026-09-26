@@ -1,6 +1,9 @@
 "use client";
 
 import type { ParseResult } from "@/types";
+import Icon from "@/components/ui/Icon";
+import { card } from "@/components/ui/styles";
+import { formatCount } from "@/lib/format";
 import LocalDataNotice from "@/components/localdata/LocalDataNotice";
 import { useLocalProjectData } from "@/components/localdata/useLocalProjectData";
 
@@ -25,57 +28,59 @@ export default function PreviewTable({ projectId }: PreviewTableProps) {
   const previewRows = dataset.rows.slice(0, MAX_PREVIEW_ROWS);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-up">
       {dataset.parseWarnings.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-xs font-semibold text-amber-800 mb-1">
-            Parse warnings
-          </p>
-          <ul className="space-y-0.5">
-            {dataset.parseWarnings.map((w, i) => (
-              <li key={i} className="text-xs text-amber-700">
-                {w}
-              </li>
-            ))}
-          </ul>
+        <div role="status" className="flex gap-3 rounded-xl bg-warning-bg px-4 py-3 ring-1 ring-warning/30">
+          <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-warning-text" />
+          <div>
+            <p className="text-sm font-semibold text-warning-text">We fixed a few formatting issues</p>
+            <ul className="mt-1 space-y-0.5">
+              {dataset.parseWarnings.map((w, i) => (
+                <li key={i} className="text-xs text-warning-text">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
-      <div className="flex items-center gap-4 text-xs text-zinc-500">
-        <span>{dataset.headers.length} columns</span>
-        <span>{dataset.rowCount.toLocaleString()} rows</span>
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-800">
+          {formatCount(dataset.rowCount)} rows
+        </span>
+        <span className="rounded-full bg-brand-50 px-3 py-1 font-medium text-brand-800">
+          {dataset.headers.length} columns
+        </span>
         {dataset.rowCount > MAX_PREVIEW_ROWS && (
-          <span>Showing first {MAX_PREVIEW_ROWS} rows</span>
+          <span className="text-ink-3">Showing the first {MAX_PREVIEW_ROWS} rows</span>
         )}
       </div>
 
-      <div className="rounded-lg border border-zinc-200 overflow-x-auto">
-        <table className="w-full text-sm min-w-max">
-          <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50">
+      <div className={`${card} max-h-[60vh] overflow-auto`}>
+        <table className="w-full min-w-max text-sm">
+          <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur">
+            <tr>
+              <th scope="col" className="w-10 px-3 py-2.5 text-right text-xs font-medium text-ink-3">
+                #
+              </th>
               {dataset.headers.map((header) => (
                 <th
                   key={header}
-                  className="text-left px-3 py-2 text-xs font-medium text-zinc-500 whitespace-nowrap"
+                  scope="col"
+                  className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold text-ink"
                 >
                   {header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-soft">
             {previewRows.map((row, i) => (
-              <tr
-                key={i}
-                className={`border-b border-zinc-100 last:border-0 ${
-                  i % 2 !== 0 ? "bg-zinc-50/50" : ""
-                }`}
-              >
+              <tr key={i} className="transition-colors hover:bg-brand-50/60">
+                <td className="tabular px-3 py-2 text-right text-xs text-ink-3">{i + 1}</td>
                 {dataset.headers.map((header) => (
-                  <td
-                    key={header}
-                    className="px-3 py-2 text-xs text-zinc-700 max-w-xs truncate"
-                  >
+                  <td key={header} className="max-w-xs truncate px-3 py-2 text-[13px] text-ink-2">
                     {row[header] ?? ""}
                   </td>
                 ))}

@@ -21,7 +21,7 @@ export default async function ProjectLayout({
 
   return (
     <div className="flex flex-col flex-1">
-      <StepNav projectId={projectId} />
+      <StepNav projectId={projectId} projectName={project.name} />
       <div className="flex-1">{children}</div>
     </div>
   );
