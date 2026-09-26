@@ -171,7 +171,6 @@ alter table analysis_results enable row level security;
 
 ## Known limitations
 
-- Type inference doesn't recognize currency-formatted numbers (`$1,234`) as numeric; the user must set the column to Numeric manually (cleaning already strips the formatting).
 - No duplicate-row removal in cleaning.
 - Date normalization uses `new Date()`; US-format dates can be off by one in some timezones.
 - Word cloud is CSS font-size only; charts are plain Tailwind (no chart library).

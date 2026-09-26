@@ -137,12 +137,16 @@ function ratingBar(r: RatingResult): BarChart {
 }
 
 function numericHistogram(r: NumericResult): HistogramChart {
-  const buckets = buildBuckets(r.min, r.max, 10);
+  // Older saved results predate `bins`; show an empty chart rather than crash.
+  const bins = r.bins ?? [];
   return {
     type: "histogram",
     columnName: r.columnName,
     title: `${r.columnName} distribution`,
-    data: buckets,
+    data: bins.map((b) => ({
+      label: b.lo === b.hi ? formatBinEdge(b.lo) : `${formatBinEdge(b.lo)}–${formatBinEdge(b.hi)}`,
+      value: b.count,
+    })),
     mean: r.mean,
     median: r.median,
   };
@@ -183,21 +187,8 @@ function wordCloudData(r: TextColumnAnalysis): WordCloudDataChart {
  * Builds N evenly-spaced histogram buckets between min and max.
  * Returns count=0 for empty buckets (callers may filter as needed).
  */
-function buildBuckets(min: number, max: number, n: number): BarDataPoint[] {
-  if (min === max) {
-    return [{ label: String(min), value: 1 }];
-  }
-  const step = (max - min) / n;
-  return Array.from({ length: n }, (_, i) => {
-    const lo = min + i * step;
-    const hi = lo + step;
-    return {
-      label: `${round1(lo)}–${round1(hi)}`,
-      value: 0,
-    };
-  });
-}
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
+/** Short bin label: whole numbers with separators for large values, else 1 dp. */
+export function formatBinEdge(n: number): string {
+  if (Math.abs(n) >= 1000) return Math.round(n).toLocaleString("en-US");
+  return String(Math.round(n * 10) / 10);
 }

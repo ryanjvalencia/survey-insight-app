@@ -50,6 +50,15 @@ function isNumeric(v: string): boolean {
   return v !== "" && !isNaN(Number(v));
 }
 
+// Currency and/or thousands separators, e.g. "$1,234", "€99.50", "12,000".
+// Mirrors what cleanNumeric strips ($ £ € and commas).
+const FORMATTED_NUMBER_RE =
+  /^-?[$£€]?-?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/;
+
+function isFormattedNumber(v: string): boolean {
+  return FORMATTED_NUMBER_RE.test(v) && /[$£€,]/.test(v);
+}
+
 function isIntegerStr(v: string): boolean {
   const n = Number(v);
   return !isNaN(n) && Number.isInteger(n);
@@ -65,6 +74,8 @@ function isDateStr(v: string): boolean {
 
 interface ValueStats {
   numericRatio: number;
+  /** Share of values that are plain or currency/thousands-formatted numbers. */
+  formattedNumericRatio: number;
   integerRatio: number;
   dateRatio: number;
   uniqueCount: number;
@@ -84,6 +95,8 @@ function computeStats(values: string[], totalRows: number): ValueStats {
 
   return {
     numericRatio: numericVals.length / values.length,
+    formattedNumericRatio:
+      values.filter((v) => isNumeric(v) || isFormattedNumber(v)).length / values.length,
     integerRatio: integerVals.length / values.length,
     dateRatio: dateVals.length / values.length,
     uniqueCount: unique.size,
@@ -119,8 +132,9 @@ function valueHint(s: ValueStats): ColumnType | null {
     return "rating";
   }
 
-  // Numeric: mostly parseable as numbers
-  if (s.numericRatio >= 0.9) return "numeric";
+  // Numeric: mostly parseable as numbers, including "$1,234"-style values
+  // (cleaning strips the formatting). Checked after NPS/rating on purpose.
+  if (s.numericRatio >= 0.9 || s.formattedNumericRatio >= 0.9) return "numeric";
 
   // Date: mostly match date pattern
   if (s.dateRatio >= 0.8) return "date";

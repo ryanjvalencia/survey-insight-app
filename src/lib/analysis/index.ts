@@ -25,6 +25,14 @@ export interface RatingResult {
   totalResponses: number;
 }
 
+export interface HistogramBin {
+  /** Inclusive lower edge. */
+  lo: number;
+  /** Upper edge — exclusive, except the last bin, which includes max. */
+  hi: number;
+  count: number;
+}
+
 export interface NumericResult {
   columnName: string;
   mean: number;
@@ -33,7 +41,11 @@ export interface NumericResult {
   min: number;
   max: number;
   totalResponses: number;
+  /** Equal-width bins spanning min..max; counts sum to totalResponses. */
+  bins: HistogramBin[];
 }
+
+export const HISTOGRAM_BIN_COUNT = 10;
 
 export interface CategoryResult {
   columnName: string;
@@ -170,7 +182,36 @@ function computeNumeric(name: string, nums: number[]): NumericResult {
     min: sorted[0],
     max: sorted[sorted.length - 1],
     totalResponses: nums.length,
+    bins: histogramBins(sorted, HISTOGRAM_BIN_COUNT),
   };
+}
+
+/**
+ * Counts values into `n` equal-width bins between the smallest and largest
+ * value. When every value is identical, returns a single bin.
+ */
+export function histogramBins(values: number[], n: number): HistogramBin[] {
+  if (values.length === 0) return [];
+  let min = values[0];
+  let max = values[0];
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  if (min === max) return [{ lo: min, hi: max, count: values.length }];
+
+  const width = (max - min) / n;
+  const bins: HistogramBin[] = Array.from({ length: n }, (_, i) => ({
+    lo: min + i * width,
+    hi: i === n - 1 ? max : min + (i + 1) * width,
+    count: 0,
+  }));
+  for (const v of values) {
+    // Clamp so max (and float rounding near it) lands in the last bin.
+    const i = Math.min(n - 1, Math.floor((v - min) / width));
+    bins[i].count++;
+  }
+  return bins;
 }
 
 function computeCategory(name: string, values: string[]): CategoryResult {

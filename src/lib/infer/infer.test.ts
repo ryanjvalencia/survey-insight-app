@@ -225,3 +225,28 @@ describe("inferColumnTypes", () => {
     expect(col.inferredType).toBe("nps");
   });
 });
+
+describe("inferColumnTypes — formatted numbers", () => {
+  function infer(header: string, values: string[]) {
+    return inferColumnTypes(makeDataset([header], makeRows(header, values)))[0].type;
+  }
+
+  it("detects currency and thousands-separated values as numeric", () => {
+    expect(infer("amount", ["$179,462", "176719", "$1,200", "234421", "€99.50", "12,000"])).toBe("numeric");
+  });
+
+  it("detects a column with ~30% currency-formatted values as numeric", () => {
+    const values = Array.from({ length: 20 }, (_, i) =>
+      i % 3 === 0 ? `$${(1000 + i * 1234).toLocaleString("en-US")}` : String(5000 + i * 777),
+    );
+    expect(infer("amount", values)).toBe("numeric");
+  });
+
+  it("does not treat malformed separators or text as numbers", () => {
+    expect(infer("code", ["1,23,4", "12,34", "$", "abc", ",", "1,2"])).not.toBe("numeric");
+  });
+
+  it("still detects small plain integers as NPS rather than numeric", () => {
+    expect(infer("q1", ["0", "5", "9", "10", "3", "7"])).toBe("nps");
+  });
+});

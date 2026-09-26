@@ -44,6 +44,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` — replaced Next.js boilerplate with project-specific setup instructions
 
 ### Fixed
+- Numeric histograms showed 0 in every bin: bins were built from min/max only with hard-coded zero counts. Analysis now counts values into 10 equal-width bins (`histogramBins`, stored as `NumericResult.bins`) and charts use those counts. Labels use thousands separators for large values. Projects analyzed before this fix need re-analyzing to populate their histograms.
+- Columns with currency or thousands-separated values (`$1,234`, `€99.50`, `12,000`) are now detected as Numeric instead of Unknown.
 - Column type choices on the mapping step are saved on every change and restored when returning to the step (previously lost when navigating between steps).
 - Files up to the advertised 10 MB / 50,000 rows now work: raw rows moved from `sessionStorage` (~5M character cap, which a ~15–20k-row file already exceeded) to IndexedDB.
 - NPS is shown with its −100 to +100 scale, a sign (+17.6), and the average 0–10 answer; the bare number read as out of range. The calculation itself was correct.
