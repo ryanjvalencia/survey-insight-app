@@ -31,7 +31,13 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Find these in your Supabase project under **Settings → API**. Use the **Project URL** and the **anon / public** key only. Never put the service role key in a `NEXT_PUBLIC_` variable.
+Find these in your Supabase project via the **Connect** button (or **Project Settings → Data API / API Keys**). Use the **Project URL** and the **publishable** (or legacy **anon**) key only. Never put the secret / service role key in a `NEXT_PUBLIC_` variable.
+
+## Database setup
+
+Run each file in [`supabase/migrations/`](supabase/migrations/) in order, in the Supabase dashboard under **SQL Editor → New query**. They are idempotent, so re-running is safe.
+
+Authentication uses Supabase email + password. Email confirmation is controlled in the dashboard under **Authentication → Sign In / Providers → Email**.
 
 ## Architecture
 

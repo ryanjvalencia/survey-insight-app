@@ -1,12 +1,16 @@
 import { redirect } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import { createProject } from "@/lib/db/projects";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const MAX_NAME_LENGTH = 120;
 
 async function create(formData: FormData) {
   "use server";
-  const name = (formData.get("name") as string | null)?.trim();
+  const raw = formData.get("name");
+  const name = typeof raw === "string" ? raw.trim().slice(0, MAX_NAME_LENGTH) : "";
   if (!name) return;
-  const project = await createProject(name);
+  const project = await createProject(await createSupabaseServerClient(), name);
   redirect(`/projects/${project.id}/upload`);
 }
 
@@ -33,6 +37,7 @@ export default function NewProjectPage() {
             name="name"
             type="text"
             required
+            maxLength={MAX_NAME_LENGTH}
             placeholder="e.g. Q2 Customer Survey"
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />

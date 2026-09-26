@@ -16,8 +16,8 @@ Target audience: consultants analyzing client survey data. See `docs/product-spe
 
 ## Next — path to launch
 
-1. [ ] **Cleanup and merge** — remove orchestrator-era scaffolding, merge `agent-factory` into `main`
-2. [ ] **Auth and data ownership**
+1. [x] **Cleanup and merge** — remove orchestrator-era scaffolding, merge `agent-factory` into `main`
+2. [x] **Auth and data ownership**
    - Supabase email + password auth; protect `(app)` routes
    - Add `user_id` to `projects`; replace permissive RLS with `auth.uid() = user_id` policies
    - Check the uploaded dataset against the logged-in user before saving

@@ -30,6 +30,8 @@ CI (`.github/workflows/ci.yml`) runs the same four on every PR and on push to `m
 
 - Business/data logic lives in `src/lib/` as pure, tested functions. UI lives in `src/app/` and `src/components/` and only imports from `src/lib/`.
 - Shared domain types go in `src/types/index.ts`.
+- Database access is server-only: Server Components / Server Actions with `createSupabaseServerClient()` from `src/lib/supabase/server.ts`, passed into `src/lib/db/*` functions. Never query Supabase from client components. Re-validate all browser input in Server Actions.
+- Schema changes go in `supabase/migrations/` as idempotent SQL; the human runs them in the Supabase SQL Editor.
 - Server Components by default; `"use client"` only when hooks or browser APIs are needed.
 - `next/link` for internal navigation.
 - Every new `src/lib/` function gets at least one unit test, using synthetic fixtures only.
@@ -46,3 +48,13 @@ CI (`.github/workflows/ci.yml`) runs the same four on every PR and on push to `m
 ## Ask the human first
 
 Production deploys, DNS, billing/payments, new external services, and anything requiring a secret.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
