@@ -25,6 +25,7 @@
 *.pem
 test-survey.csv
 .claude/scheduled_tasks.lock
+.claude/settings.local.json
 
 # debug
 npm-debug.log*

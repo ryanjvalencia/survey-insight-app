@@ -7,10 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+- Multi-agent orchestrator scaffolding (`AGENTS.md`, agent operating-system/prompt docs, issue generator script, `/implement-issue` and `/review-pr` skills, agent-task issue template, `src/lib/data` stub)
+
+### Changed
+- `CLAUDE.md` rewritten as a concise project guide; `docs/roadmap.md` replaced with a launch checklist; PR template, security doc, and `/qa-workflow` skill no longer reference agent roles
+- `docs/architecture.md` now holds the sessionStorage keys, DB schema, design decisions, and known limitations (previously in `docs/handoff.md`)
+- Product spec names consultants as the primary audience
+- CI runs on Node 24 (Node 20 is end-of-life)
+- `dashboard/` and `projects/` moved into `(app)/` route group — URLs unchanged (#3)
+- `[projectId]/layout.tsx` — removed redundant nav header, now delegates to `StepNav` (#3)
+- `README.md` — replaced Next.js boilerplate with project-specific setup instructions
+
 ### Added
 - Supabase persistence (#20) — `@supabase/supabase-js` installed; `src/lib/supabase/client.ts` singleton client; `src/lib/db/projects.ts` (createProject, getProject, listProjects, updateProjectStatus) and `src/lib/db/datasets.ts` (saveDataset); 13 unit tests for all DB functions. Project creation now writes to Supabase via a Server Action; dashboard fetches live project list; upload step persists dataset metadata (row count, column count, sanitized filename — no raw rows); mapping step updates project status to `analyzed`. RLS enabled on both tables with open policies for pre-auth phase.
-
-### Added (previous)
 - Report page (`src/app/(app)/projects/[projectId]/report/`) — `ReportSection` renders printable insights/stats summary and wires CSV download (re-runs cleaning from sessionStorage) and print-to-PDF via `window.print()` (#18, #19)
 - Analysis dashboard (`src/app/(app)/projects/[projectId]/analysis/`) — `AnalysisDashboard` client component reads sessionStorage and renders cleaning summary, rule-based insights, and charts (NPS gauge, rating/numeric bar charts, category frequency table, word cloud); `MappingSection` updated to run the full pipeline on "Next: Analyze" (#12, #16)
 - Chart transformations module (`src/lib/charts/index.ts`) — `buildCharts` converts analysis results into `ChartSpec` objects: NPS gauge, rating bar, numeric histogram (10 buckets), category pie (top 10 + Other), and word-cloud weight data (#15)
@@ -23,19 +33,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Column type inference module (`src/lib/infer/index.ts`) — `inferColumnTypes` infers NPS, rating, numeric, date, category, open_text, id, or unknown for each column using name heuristics and value sampling; returns `ColumnMapping[]` with confidence scores (#8)
 - Data preview screen — upload step parses CSV in the browser, stores `ParseResult` in `sessionStorage`; preview page renders first 25 rows with column headers, row/column count, and parse warnings (#7)
 - `PreviewTable` client component (`src/app/(app)/projects/[projectId]/preview/PreviewTable.tsx`) using `useSyncExternalStore` for hydration-safe sessionStorage reads (#7)
-
----
-
-### Added (previous unreleased)
 - Dashboard shell (`src/app/(app)/layout.tsx`) — persistent app nav wrapping all app routes via route group, landing page excluded (#3)
 - `Nav` component (`src/components/layout/Nav.tsx`) — sticky top nav with active-state highlighting via `usePathname` (#3)
 - `StepNav` component (`src/components/layout/StepNav.tsx`) — per-project workflow step strip with active step highlighting (#3)
 - `docs/architecture.md` — route structure, component conventions, module layout
-
-### Changed
-- `dashboard/` and `projects/` moved into `(app)/` route group — URLs unchanged (#3)
-- `[projectId]/layout.tsx` — removed redundant nav header, now delegates to `StepNav` (#3)
-- `README.md` — replaced Next.js boilerplate with project-specific setup instructions
 
 ---
 
