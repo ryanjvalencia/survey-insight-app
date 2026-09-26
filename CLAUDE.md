@@ -1,75 +1,48 @@
-@AGENTS.md
+# CLAUDE.md — Survey Insight
 
-# CLAUDE.md — Orchestrator Instructions
+Web app that turns messy survey / customer feedback CSV exports into cleaned data, charts, plain-English insights, and a downloadable report. Primary audience: **consultants** analyzing client survey data (small businesses may become a focus later).
 
-You are the orchestrator for the Survey Insight agent system. You coordinate a team of specialized agents to build this app incrementally, one GitHub issue at a time.
+- Product spec: `docs/product-spec.md`
+- Architecture and module layout: `docs/architecture.md`
+- Security and privacy rules: `docs/security-privacy.md`
+- Launch checklist: `docs/roadmap.md`
 
-## Your role
+## Tech stack
 
-You are **not** a builder. You read, assign, verify, and enforce. When a task needs to be done, you hand it to the right agent and confirm their output meets the acceptance criteria before moving on.
+- Next.js 16 App Router — **this version has breaking API changes; check `node_modules/next/dist/docs/` before writing Next.js code.** `params` is a Promise in pages/layouts and must be awaited.
+- React 19, TypeScript strict mode
+- Tailwind CSS v4 (no inline styles, no CSS modules)
+- Vitest for unit tests (collocated `*.test.ts`)
+- Supabase (`@supabase/supabase-js`) for persistence; env vars in `.env.local`
 
-## Startup sequence
+## Checks — all four must pass before a change is done
 
-Every session begins with these steps in order:
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-1. Read `docs/roadmap.md` — identify every issue marked `in-progress` or `blocked`.
-2. Check if CI is passing on `main` (run `npm run build` locally if needed).
-3. Identify the next unblocked issue in dependency order.
-4. Write a structured handoff to the appropriate agent (see `AGENTS.md` for handoff formats).
-5. After the agent completes, verify all acceptance criteria and CI before marking done.
+CI (`.github/workflows/ci.yml`) runs the same four on every PR and on push to `main`.
 
-## How to read the roadmap
+## Conventions
 
-Each row in `docs/roadmap.md` has:
-- Issue number and title
-- Status: `not-started` | `in-progress` | `done` | `blocked`
-- Dependencies (other issue numbers that must be `done` first)
-- Assigned agent role
-
-An issue is unblocked when all its dependencies are `done` and CI is passing on `main`.
-
-## Decision rules
-
-| Situation | Action |
-|---|---|
-| Next issue is clear and unblocked | Write handoff, assign to builder |
-| Two issues are unblocked and independent | Assign both in parallel |
-| An issue is blocked by a failing dependency | Flag to human, do not skip |
-| CI is failing on `main` | Stop all new work, escalate to human |
-| A builder agent touches files outside their role | Flag immediately, revert if needed |
-| A security finding is HIGH severity | Block the PR, escalate to human |
-| A new npm dependency is proposed | Require written justification before approving |
-| A task involves deployment, payments, or auth config | Require explicit human approval |
-
-## Enforcement checklist — verify before marking any issue done
-
-- [ ] All four CI checks pass (`lint`, `typecheck`, `test`, `build`)
-- [ ] No new `console.log` statements log row data or file content
-- [ ] No secrets appear in any diff
-- [ ] Every new data pipeline function has at least one unit test
-- [ ] The agent stayed within their allowed file scope
-- [ ] Security/Privacy Agent reviewed the issue if it touches upload, auth, export, or AI
-
-## Escalate to human when
-
-- CI has been failing on `main` for more than one issue cycle
-- A HIGH security finding blocks a PR
-- A dependency conflict has no clean resolution
-- The roadmap needs to be reprioritized
-- A new external service (Supabase, AI API, payments) needs to be configured
-- Any action requires a secret, a production deploy, or a billing change
-
-## After each completed issue
-
-1. Update `docs/roadmap.md` status to `done`.
-2. Confirm Documentation Agent has updated affected docs.
-3. Confirm a `CHANGELOG.md` entry exists.
-4. Confirm Release Agent has opened a PR with the completed template.
-5. Wait for human merge before starting the next issue.
+- Business/data logic lives in `src/lib/` as pure, tested functions. UI lives in `src/app/` and `src/components/` and only imports from `src/lib/`.
+- Shared domain types go in `src/types/index.ts`.
+- Server Components by default; `"use client"` only when hooks or browser APIs are needed.
+- `next/link` for internal navigation.
+- Every new `src/lib/` function gets at least one unit test, using synthetic fixtures only.
+- New npm dependencies need a stated reason in the commit/PR description.
 
 ## Privacy rules — non-negotiable
 
 - Treat every uploaded file as sensitive PII.
-- Never pass raw row data into a prompt, log, or error message.
-- Never use a real user dataset in tests — use synthetic fixtures only.
-- Never send open-text responses to an AI API without an explicit feature flag and sanitization layer.
+- Never log, persist, or put in error messages any raw row data, cell values, or open-text responses. Messages use counts and percentages only.
+- Never send user-uploaded text to an AI API without a feature flag and a sanitization layer.
+- Never commit secrets or `.env*` files. `SUPABASE_SERVICE_ROLE_KEY` must never be in a `NEXT_PUBLIC_` variable.
+- Every Supabase table has RLS enabled.
+
+## Ask the human first
+
+Production deploys, DNS, billing/payments, new external services, and anything requiring a secret.

@@ -37,10 +37,6 @@ Find these in your Supabase project under **Settings → API**. Use the **Projec
 
 See [docs/architecture.md](docs/architecture.md) for route structure, component conventions, and module layout.
 
-## Agent build system
-
-This project uses an agent build system. See [docs/agent-operating-system.md](docs/agent-operating-system.md) for how the build loop works and [docs/agent-prompts.md](docs/agent-prompts.md) for ready-to-run agent prompts.
-
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md) for the full issue list and dependency order.
+See [docs/roadmap.md](docs/roadmap.md) for what's done and the path to launch.

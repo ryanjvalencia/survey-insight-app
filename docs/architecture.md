@@ -60,8 +60,6 @@ src/lib/
   db/
     projects.ts     CRUD for the projects table: createProject, getProject, listProjects, updateProjectStatus
     datasets.ts     Insert for the datasets table: saveDataset
-  data/
-    index.ts        Stub
   validate/         validateFileMetadata, validateCSVContent
   parse/            parseCSV — RFC 4180 parser
   infer/            inferColumnTypes
@@ -80,9 +78,20 @@ src/types/
 
 ---
 
-## Persistence pattern (as of #20)
+## Persistence pattern
 
-**Raw survey data:** browser sessionStorage only — never sent to the database.
+**Raw survey data:** browser sessionStorage only — never sent to the database. The whole pipeline (clean → analyze → insights → charts) runs client-side when the user clicks "Next: Analyze" on the mapping step.
+
+**sessionStorage keys (per project):**
+
+| Key | Value |
+|---|---|
+| `preview:${projectId}` | `ParseResult` — raw parsed dataset |
+| `mapping:${projectId}` | `ColumnMapping[]` — user-confirmed column types |
+| `cleaning:${projectId}` | `CleaningSummary` — counts only, no row data |
+| `analysis:${projectId}` | `{ quant, text, insights, charts }` — full analysis payload |
+
+Components read these via `useSyncExternalStore` (hydration-safe; avoids setState-in-effect lint errors). Closing the tab loses them — reopening a project from the dashboard currently shows an empty state.
 
 **Metadata persisted to Supabase:**
 - `projects` table — project name, status (`created` → `uploaded` → `analyzed`), timestamps
@@ -92,7 +101,49 @@ src/types/
 
 **Server Actions:** `projects/new/page.tsx` defines an inline Server Action (`"use server"`) to create a project and redirect. No Route Handlers are used for persistence.
 
-**RLS:** Both tables have RLS enabled. Policies are permissive (`using (true)`) until authentication is added in #21, at which point they will be replaced with `auth.uid() = user_id` row-scoped policies.
+**RLS:** Both tables have RLS enabled. Policies are currently permissive (`using (true)`) — anyone with the anon key can read and write every row. They must be replaced with `auth.uid() = user_id` row-scoped policies when auth is added.
+
+**Database schema (current):**
+
+```sql
+create table projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users,   -- not yet populated; becomes NOT NULL with auth
+  name text not null,
+  status text not null default 'created',
+  created_at timestamptz default now()
+);
+
+create table datasets (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references projects not null,
+  original_filename text,
+  row_count integer,
+  column_count integer,
+  created_at timestamptz default now()
+);
+
+alter table projects enable row level security;
+alter table datasets enable row level security;
+```
+
+---
+
+## Key design decisions
+
+| Decision | Reason |
+|---|---|
+| `inferColumnTypes` uses name hints first, value stats for confidence | Column names are high-signal; values may be sparse |
+| `cleanDataset` clamps NPS/rating rather than dropping rows | Preserves the response with a bounded value |
+| Insights are rule-based, no AI API | Privacy — AI requires a feature flag and sanitization layer |
+| Report uses `window.print()`, no PDF library | Avoided a dependency for MVP; quality varies by browser |
+| CSV export re-runs cleaning on download | Cleaned rows aren't stored; fast enough for ≤50k rows |
+
+## Known limitations
+
+- No duplicate-row removal in cleaning.
+- Date normalization uses `new Date()`; US-format dates can be off by one in some timezones.
+- Word cloud is CSS font-size only; charts are plain Tailwind (no chart library).
 
 ---
 
@@ -111,8 +162,7 @@ src/types/
 
 ## Key constraints
 
-- `src/app/` and `src/components/` — Frontend Agent only
-- `src/lib/` and `src/types/` — Data Pipeline Agent only
+- Business logic in `src/lib/` and `src/types/`; UI in `src/app/` and `src/components/`
 - No secrets in source files
 - No raw user data in logs
 - `params` in dynamic routes is a Promise — must be awaited

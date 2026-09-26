@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         ## Bug report
-        Provide enough detail that any agent or developer can reproduce the issue from scratch.
+        Provide enough detail to reproduce the issue from scratch.
 
   - type: textarea
     id: description

@@ -1,6 +1,6 @@
 # Skill: /qa-workflow
 
-Runs a structured QA walkthrough of the app's user workflow. Run this after the Test Agent completes and before the Security/Privacy Agent review.
+Runs a structured QA walkthrough of the app's user workflow in the browser. Run it after a feature is implemented and tests pass.
 
 ## Usage
 
@@ -40,7 +40,7 @@ npm run build   # must exit 0
 npm run dev     # must start without errors
 ```
 
-If either fails, stop and escalate to the builder agent.
+If either fails, stop and report the error.
 
 ---
 
@@ -133,7 +133,7 @@ Open browser DevTools (F12) → Console tab. At the end of the full walkthrough:
 ## Output format
 
 ```
-QA WORKFLOW — Issue #<n>
+QA WORKFLOW — <feature or branch>
 Date: <date>
 
 PRE-FLIGHT: pass | fail — <details>
@@ -156,7 +156,7 @@ CONSOLE ERRORS: none | <list>
 
 REGRESSIONS FOUND: none | <list with reproduction steps>
 
-VERDICT: PASS — ready for Security/Privacy Agent | FAIL — regressions filed as bugs
+VERDICT: PASS | FAIL — <regressions>
 ```
 
 ---

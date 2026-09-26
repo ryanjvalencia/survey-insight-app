@@ -1,6 +1,6 @@
 # Security and Privacy Rules — Survey Insight
 
-This document defines the hard rules that every agent must follow. The Security/Privacy Agent uses this as their review checklist. All other agents must read this before touching code that handles user data.
+This document defines the hard rules for any code that handles user data, and serves as the checklist for security reviews (e.g. `/security-review`).
 
 Non-compliance with any rule marked **HARD BLOCK** is a HIGH severity finding that prevents PR merge.
 
@@ -145,7 +145,7 @@ res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
 
 ## Security review trigger conditions
 
-The Security/Privacy Agent must review any PR that contains changes to:
+Run a security review on any change that touches:
 
 - `src/app/api/**` (all Route Handlers)
 - `src/lib/upload/**`

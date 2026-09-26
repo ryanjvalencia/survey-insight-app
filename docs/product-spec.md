@@ -6,9 +6,11 @@ A web app that turns messy survey and customer feedback CSV files into clean ins
 
 ## Target users
 
+**Primary: consultants** who receive messy survey exports from clients and need clean data, defensible numbers, and a client-ready report fast. Small businesses may become a focus later.
+
 | User | Pain point |
 |---|---|
-| Consultant | Spends hours cleaning client survey exports before analysis |
+| Consultant (primary) | Spends hours cleaning client survey exports before analysis |
 | Marketing agency | Needs fast NPS and CSAT summaries for client decks |
 | UX researcher | Has 500 open-text responses and needs themes fast |
 | Startup founder | Wants to understand churn survey results without hiring an analyst |
