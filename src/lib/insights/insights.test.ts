@@ -357,3 +357,29 @@ describe("generateInsights — summary", () => {
     expect(summary.length).toBeGreaterThan(0);
   });
 });
+
+describe("generateInsights — NPS wording", () => {
+  it("states the −100 to +100 scale and the 0–10 average so the score isn't misread", () => {
+    const quant = {
+      ...emptyQuant(),
+      nps: [
+        {
+          columnName: "nps_score",
+          score: 17.6,
+          promoters: 46,
+          passives: 25,
+          detractors: 29,
+          promoterPct: 46,
+          passivePct: 25,
+          detractorPct: 29,
+          totalResponses: 100,
+          mean: 7.9,
+        },
+      ],
+    };
+    const [insight] = generateInsights(quant, emptyText()).insights;
+    expect(insight.title).toBe("NPS: +17.6");
+    expect(insight.body).toContain("−100 to +100");
+    expect(insight.body).toContain("average answer 7.9 / 10");
+  });
+});

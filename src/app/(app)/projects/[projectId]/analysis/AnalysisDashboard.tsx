@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CleaningSummary } from "@/types";
-import type { ChartSet } from "@/lib/charts";
+import { formatNpsScore, type ChartSet } from "@/lib/charts";
 import type { InsightReport } from "@/lib/insights";
 import type { StoredAnalysis } from "@/lib/results";
 
@@ -211,7 +211,13 @@ function ChartCard({
         <p className="text-xs font-medium text-zinc-500 mb-3">
           {chart.columnName} — NPS
         </p>
-        <p className="text-5xl font-bold text-zinc-900 mb-4">{chart.score}</p>
+        <p className="text-5xl font-bold text-zinc-900">
+          {formatNpsScore(chart.score)}
+        </p>
+        <p className="text-xs text-zinc-400 mt-1 mb-4">
+          Net Promoter Score, −100 to +100
+          {Number.isFinite(chart.mean) && <> · average answer {chart.mean} / 10</>}
+        </p>
         <div className="flex gap-3 text-xs">
           <span className="text-emerald-700">
             {chart.promoterPct}% promoters

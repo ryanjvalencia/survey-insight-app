@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCharts } from "./index";
+import { buildCharts, formatNpsScore } from "./index";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 
@@ -38,6 +38,7 @@ describe("buildCharts — NPS gauge", () => {
     if (charts[0].type === "nps_gauge") {
       expect(charts[0].score).toBe(20);
       expect(charts[0].totalResponses).toBe(6);
+      expect(charts[0].mean).toBe(7.5);
     }
   });
 });
@@ -250,5 +251,29 @@ describe("buildCharts — empty inputs", () => {
     expect(charts).toHaveLength(2);
     expect(charts.some((c) => c.type === "nps_gauge")).toBe(true);
     expect(charts.some((c) => c.type === "bar")).toBe(true);
+  });
+});
+
+// ── NPS formatting ────────────────────────────────────────────────────────────
+
+describe("formatNpsScore", () => {
+  it("prefixes positive scores with a plus sign", () => {
+    expect(formatNpsScore(17.62)).toBe("+17.6");
+    expect(formatNpsScore(100)).toBe("+100");
+  });
+
+  it("prefixes negative scores with a minus sign", () => {
+    expect(formatNpsScore(-4)).toBe("−4");
+    expect(formatNpsScore(-100)).toBe("−100");
+  });
+
+  it("shows zero without a sign, including values that round to zero", () => {
+    expect(formatNpsScore(0)).toBe("0");
+    expect(formatNpsScore(0.04)).toBe("0");
+    expect(formatNpsScore(-0.04)).toBe("0");
+  });
+
+  it("renders a dash for non-finite input", () => {
+    expect(formatNpsScore(Number.NaN)).toBe("—");
   });
 });

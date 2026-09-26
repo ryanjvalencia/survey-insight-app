@@ -7,6 +7,7 @@ import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
 import type { InsightReport } from "@/lib/insights";
 import type { StoredAnalysis } from "@/lib/results";
+import { formatNpsScore } from "@/lib/charts";
 import { cleanDataset } from "@/lib/clean";
 import { serializeCSV } from "@/lib/export";
 
@@ -215,7 +216,12 @@ function QuantSummary({ quant }: { quant: QuantitativeAnalysis }) {
             <p className="text-xs font-medium text-zinc-700 mb-1">
               {r.columnName} — NPS
             </p>
-            <p className="text-2xl font-bold text-zinc-900">{r.score}</p>
+            <p className="text-2xl font-bold text-zinc-900">
+              {formatNpsScore(r.score)}{" "}
+              <span className="text-xs font-normal text-zinc-400">
+                (−100 to +100) · average answer {r.mean} / 10
+              </span>
+            </p>
             <p className="text-xs text-zinc-500">
               {r.promoterPct}% promoters · {r.passivePct}% passives ·{" "}
               {r.detractorPct}% detractors · {r.totalResponses.toLocaleString()}{" "}

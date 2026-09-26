@@ -29,6 +29,8 @@ export interface NPSGaugeChart {
   passivePct: number;
   detractorPct: number;
   totalResponses: number;
+  /** Average raw answer on the 0–10 scale (the NPS itself is −100 to +100). */
+  mean: number;
 }
 
 export interface BarChart {
@@ -104,7 +106,20 @@ function npsGauge(r: NPSResult): NPSGaugeChart {
     passivePct: r.passivePct,
     detractorPct: r.detractorPct,
     totalResponses: r.totalResponses,
+    mean: r.mean,
   };
+}
+
+/**
+ * Formats a Net Promoter Score (−100 to +100) with an explicit sign, e.g.
+ * "+17.6", "−4", "0". Uses a true minus sign for readability.
+ */
+export function formatNpsScore(score: number): string {
+  if (!Number.isFinite(score)) return "—";
+  const rounded = Math.round(score * 10) / 10;
+  if (rounded === 0) return "0";
+  const abs = Math.abs(rounded).toString();
+  return rounded > 0 ? `+${abs}` : `−${abs}`;
 }
 
 function ratingBar(r: RatingResult): BarChart {
