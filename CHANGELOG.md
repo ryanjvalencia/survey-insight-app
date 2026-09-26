@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Key insights spotlight on the analysis page: one insight at a time in large type with a featured figure, tone-coded (strength / needs attention / observation), arrow buttons, progress segments, keyboard and swipe navigation, and an "All" grid view.
+- Column meaning inference (`src/lib/insights/columns.ts`): readable phrases instead of quoted column names ("annual revenue"), and money columns (revenue, income, salary, price, cost, spend, …) formatted as dollars with commas. Full-question headers are left as written.
+- `formatCurrency` in `src/lib/format`.
 - Redesign: design tokens (warm neutral surfaces, brand blue shared with charts, validated colorblind-safe chart palette, reserved status colors), Inter font, shared UI recipes and icon set, and a documented design system (`docs/architecture.md`).
 - Real charts without a chart library: histograms with readable compact axis labels (e.g. 25.5K), rating distributions, donut charts (top 5 + Other, legend with values), a top-words bar list, and an NPS meter that places the score on a −100…+100 benchmark track with the promoter/passive/detractor split. Every chart has hover/focus tooltips and a "Show data table" view.
 - Motion: animated upload drop zone and a live processing checklist, directional page transitions through the workflow (React View Transitions) and crossfades elsewhere, staggered card and chart entrances; all disabled for reduced-motion users.
@@ -37,6 +40,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/architecture.md` — route structure, component conventions, module layout
 
 ### Changed
+- Insights rewritten in plain language that leads with meaning and a next step: headline + explanation + featured metric, sorted most important first. NPS is framed as "would recommend vs. wouldn't" with its benchmark band; ratings report top-box/bottom-box shares on the inferred scale; numbers lead with the typical (median) value, rounded in headlines, and flag skewed averages; evenly split categories are combined into one "balanced sample" insight; comment sentiment and top words are one insight.
+- Insights are regenerated from stored aggregates when the analysis and report pages load, so existing projects show the new wording without re-running.
 - Pie charts show at most 6 slices (top 5 + Other, derived from the column total) instead of 11.
 - Analysis and report pages load results on the server; `AnalysisDashboard` is now a Server Component.
 - "Next: Analyze" shows an error and stays on the page if results can't be saved, instead of continuing silently.

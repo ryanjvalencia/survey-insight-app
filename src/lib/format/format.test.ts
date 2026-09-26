@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   compactNumber,
+  formatCurrency,
   formatCount,
   formatNumber,
   formatPercent,
@@ -92,5 +93,25 @@ describe("humanizeColumn", () => {
       "How likely are you to recommend us?",
     );
     expect(humanizeColumn("Region")).toBe("Region");
+  });
+});
+
+describe("formatCurrency", () => {
+  it("adds a dollar sign and thousands separators", () => {
+    expect(formatCurrency(125_300)).toBe("$125,300");
+    expect(formatCurrency(1_250_000.4)).toBe("$1,250,000");
+  });
+
+  it("shows cents for amounts under $1,000 that aren't whole dollars", () => {
+    expect(formatCurrency(49.5)).toBe("$49.50");
+    expect(formatCurrency(510)).toBe("$510");
+  });
+
+  it("puts the minus sign before the dollar sign", () => {
+    expect(formatCurrency(-2_500)).toBe("-$2,500");
+  });
+
+  it("returns a dash for non-finite input", () => {
+    expect(formatCurrency(Number.NaN)).toBe("—");
   });
 });

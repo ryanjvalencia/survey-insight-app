@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { QuantitativeAnalysis } from "@/lib/analysis";
 import type { TextAnalysis } from "@/lib/text";
-import type { InsightReport } from "@/lib/insights";
+import { generateInsights, type InsightReport } from "@/lib/insights";
 import type { StoredAnalysis } from "@/lib/results";
 import { cleanDataset } from "@/lib/clean";
 import { serializeCSV } from "@/lib/export";
@@ -119,7 +119,7 @@ export default function ReportSection({ projectId, projectName, analysis }: Prop
         </header>
 
         <div className="space-y-10 px-6 py-8 sm:px-10">
-          <InsightsSummary report={analysis.insights} />
+          <InsightsSummary report={generateInsights(analysis.quant, analysis.text)} />
           {nps && (
             <section className="break-inside-avoid">
               <h3 className={`${sectionTitle} mb-5`}>

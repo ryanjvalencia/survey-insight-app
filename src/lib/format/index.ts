@@ -73,3 +73,18 @@ export function humanizeColumn(name: string): string {
   const withAcronyms = spaced.replace(/\b(nps|id|csat|ces|url)\b/g, (m) => m.toUpperCase());
   return withAcronyms.charAt(0).toUpperCase() + withAcronyms.slice(1);
 }
+
+/**
+ * Dollar amount with thousands separators: 125300 → "$125,300",
+ * 49.5 → "$49.50", -2500 → "-$2,500". Whole dollars at $1,000 and above.
+ */
+export function formatCurrency(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  const digits = abs >= 1000 || Number.isInteger(abs) ? 0 : 2;
+  const body = abs.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `${n < 0 ? "-" : ""}$${body}`;
+}

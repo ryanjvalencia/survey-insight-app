@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CleaningSummary } from "@/types";
 import { formatNpsScore, type ChartSpec } from "@/lib/charts";
-import type { Insight } from "@/lib/insights";
+import { generateInsights } from "@/lib/insights";
 import type { StoredAnalysis } from "@/lib/results";
 import {
   compactNumber,
@@ -15,6 +15,7 @@ import ColumnChart from "@/components/charts/ColumnChart";
 import DonutChart from "@/components/charts/DonutChart";
 import NpsMeter from "@/components/charts/NpsMeter";
 import BarList from "@/components/charts/BarList";
+import InsightSpotlight from "@/components/insights/InsightSpotlight";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { NAV_BACK, NAV_FORWARD } from "@/components/ui/PageTransition";
 import { btnPrimary, btnSecondary, card, sectionTitle } from "@/components/ui/styles";
@@ -47,10 +48,18 @@ export default function AnalysisDashboard({ projectId, analysis }: Props) {
     );
   }
 
+  // Regenerated from the stored aggregates so every project — including ones
+  // analyzed before a wording change — shows the current insight rules.
+  const insightReport = generateInsights(analysis.quant, analysis.text);
+
   return (
     <div className="space-y-10">
+      <InsightSpotlight
+        insights={insightReport.insights}
+        summary={insightReport.summary}
+        hasTextInsights={analysis.text.columns.length > 0}
+      />
       <KpiRow analysis={analysis} />
-      <InsightsSection insights={analysis.insights.insights} summary={analysis.insights.summary} />
       <ChartsSection analysis={analysis} />
       <CleaningSection summary={analysis.cleaning} />
 
@@ -122,44 +131,6 @@ function KpiRow({ analysis }: { analysis: StoredAnalysis }) {
           <p className="mt-1 truncate text-xs text-ink-3">{t.note}</p>
         </div>
       ))}
-    </section>
-  );
-}
-
-// ── Insights ──────────────────────────────────────────────────────────────────
-
-const SEVERITY = {
-  positive: { icon: "trendUp", label: "Strength", tile: "bg-good-bg text-good-text", ring: "ring-good/20" },
-  negative: { icon: "trendDown", label: "Needs attention", tile: "bg-critical-bg text-critical-text", ring: "ring-critical/20" },
-  neutral: { icon: "info", label: "Observation", tile: "bg-brand-50 text-brand-700", ring: "ring-line-soft" },
-} as const satisfies Record<Insight["severity"], { icon: IconName; label: string; tile: string; ring: string }>;
-
-function InsightsSection({ insights, summary }: { insights: Insight[]; summary: string }) {
-  if (insights.length === 0) return null;
-  return (
-    <section>
-      <h2 className={sectionTitle}>Key insights</h2>
-      <p className="mb-4 mt-1 text-sm text-ink-2">{summary}</p>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {insights.map((ins, i) => {
-          const s = SEVERITY[ins.severity];
-          return (
-            <article
-              key={ins.id}
-              className={`animate-fade-up flex gap-3.5 rounded-2xl bg-surface p-4 shadow-card ring-1 ${s.ring}`}
-              style={{ animationDelay: `${i * 50}ms` }}
-            >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${s.tile}`}>
-                <Icon name={s.icon} className="h-5 w-5" title={s.label} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink">{ins.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-2">{ins.body}</p>
-              </div>
-            </article>
-          );
-        })}
-      </div>
     </section>
   );
 }
