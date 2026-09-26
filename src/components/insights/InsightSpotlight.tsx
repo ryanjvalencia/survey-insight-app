@@ -123,42 +123,65 @@ export default function InsightSpotlight({ insights, summary, hasTextInsights }:
             className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-3xl transition-colors duration-500 ${tone.glow}`}
           />
 
-          <div
-            key={current.id}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${index + 1} of ${count}`}
-            aria-live="polite"
-            className={`relative grid gap-8 p-6 sm:p-10 md:grid-cols-[1fr_auto] md:items-center ${
-              direction === "next" ? "animate-slide-next" : "animate-slide-prev"
-            }`}
-          >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ring-1 ${tone.pill}`}>
-                  <Icon name={tone.icon} className="h-3.5 w-3.5" />
-                  {tone.label}
-                </span>
-                {current.topic && (
-                  <span className="rounded-full bg-surface/70 px-2.5 py-1 font-medium text-ink-2 ring-1 ring-line-soft">
-                    {current.topic}
-                  </span>
-                )}
-              </div>
-              <h3 className="mt-5 text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl lg:text-[2.1rem]">
-                {current.title}
-              </h3>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-2 sm:text-lg">{current.body}</p>
-            </div>
+          {/*
+            Every slide is rendered into the same grid cell and only the
+            active one is visible, so the frame always takes the height of
+            the longest insight and stays the same size while clicking through.
+          */}
+          <div className="relative grid">
+            {insights.map((ins, i) => {
+              const active = i === index;
+              const t = TONE[ins.severity];
+              return (
+                <div
+                  key={ins.id}
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${i + 1} of ${count}`}
+                  aria-hidden={!active}
+                  aria-live={active ? "polite" : undefined}
+                  className={[
+                    "grid gap-8 p-6 [grid-area:1/1] sm:p-10 md:grid-cols-[minmax(0,1fr)_15rem] md:items-center",
+                    active
+                      ? direction === "next"
+                        ? "animate-slide-next"
+                        : "animate-slide-prev"
+                      : "invisible",
+                  ].join(" ")}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ring-1 ${t.pill}`}>
+                        <Icon name={t.icon} className="h-3.5 w-3.5" />
+                        {t.label}
+                      </span>
+                      {ins.topic && (
+                        <span className="rounded-full bg-surface/70 px-2.5 py-1 font-medium text-ink-2 ring-1 ring-line-soft">
+                          {ins.topic}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="mt-5 text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl lg:text-[2.1rem]">
+                      {ins.title}
+                    </h3>
+                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-2 sm:text-lg">{ins.body}</p>
+                  </div>
 
-            {current.metric && (
-              <div className="rounded-2xl bg-surface/80 px-6 py-5 text-center shadow-card ring-1 ring-line-soft backdrop-blur md:min-w-52">
-                <p className="animate-pop text-4xl font-semibold tracking-tight text-ink sm:text-5xl [animation-delay:120ms]">
-                  {current.metric.value}
-                </p>
-                <p className="mt-2 text-sm font-medium text-ink-2">{current.metric.label}</p>
-              </div>
-            )}
+                  {ins.metric ? (
+                    <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl bg-surface/80 px-5 py-5 text-center shadow-card ring-1 ring-line-soft backdrop-blur">
+                      <p
+                        className={`text-4xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] sm:text-[2.6rem] ${active ? "animate-pop [animation-delay:120ms]" : ""}`}
+                      >
+                        {ins.metric.value}
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-ink-2">{ins.metric.label}</p>
+                    </div>
+                  ) : (
+                    <div aria-hidden="true" className="hidden md:block" />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {count > 1 && (
